@@ -25,6 +25,31 @@ call SemBrTestCase(
       \ ['A line with ... is supported.'],
       \ ['A line with ...', 'is supported.'])
 
+call SemBrTestCase(
+      \ 'preserves paragraph, list, and code structure',
+      \ [
+      \    'The first paragraph spans',
+      \    'multiple lines.',
+      \    '',
+      \    '- first unpunctuated item',
+      \    '- second unpunctuated item',
+      \    '    let value = 1',
+      \    '    let next_value = value + 1',
+      \    '',
+      \    'The second paragraph. Another sentence!'
+      \ ],
+      \ [
+      \    'The first paragraph spans multiple lines.',
+      \    '',
+      \    '- first unpunctuated item',
+      \    '- second unpunctuated item',
+      \    '    let value = 1',
+      \    '    let next_value = value + 1',
+      \    '',
+      \    'The second paragraph.',
+      \    'Another sentence!'
+      \ ])
+
 if len(v:errors)
   for error in v:errors
     echom error
