@@ -102,3 +102,6 @@ Install the development dependencies and lint the production Vimscript:
 make install-deps
 make lint
 ```
+
+`make install-deps` uses [uv](https://docs.astral.sh/uv/) to create a local
+`.venv`, avoiding system Python package installation.

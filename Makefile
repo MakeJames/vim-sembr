@@ -1,13 +1,13 @@
 VIM ?= vim
-VINT ?= vint
-PYTHON ?= python3
+VINT ?= .venv/bin/vint
+UV ?= uv
 VSPEC_DIR ?= .vim-vspec
 VSPEC_VERSION ?= v1.9.2
 
 .PHONY: install-deps lint test
 
 install-deps:
-	$(PYTHON) -m pip install -r requirements-dev.txt
+	$(UV) sync --group dev
 
 test: $(VSPEC_DIR)/bin/prove-vspec
 	VSPEC_VIM="$(VIM)" "$(VSPEC_DIR)/bin/prove-vspec" -d "$(CURDIR)" test/
