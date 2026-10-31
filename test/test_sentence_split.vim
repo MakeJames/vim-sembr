@@ -1,211 +1,203 @@
-" test the methods for splitting sentences into lines
+runtime plugin/vim-sembr.vim
 
-call SemBrTestCase(
-      \ 'splits multiple sentences on one line',
-      \ ['One sentence. A second sentence! Is this the third?'],
-      \ ['One sentence.', 'A second sentence!', 'Is this the third?'])
+function! SemBrTestFormat(lines) abort
+  enew!
+  call setline(1, a:lines)
+  SemBr
+  return getline(1, '$')
+endfunction
 
-call SemBrTestCase(
-      \ 'Re-map split sentences',
-      \ ['A sentence can span', 'multiple source lines.', 'The next one cannot.'],
-      \ ['A sentence can span multiple source lines.', 'The next one cannot.'])
+function! SemBrTestFormatRange(lines, first_line, last_line) abort
+  enew!
+  call setline(1, a:lines)
+  call sembr#ApplyRange(a:first_line, a:last_line)
+  return getline(1, '$')
+endfunction
 
-call SemBrTestCase(
-      \ 'normalizes whitespace between sentences',
-      \ ['Sentence one.   Sentence two!'],
-      \ ['Sentence one.', 'Sentence two!'])
+describe 'SemBr'
+  it 'splits multiple sentences on one line'
+    Expect SemBrTestFormat(['One sentence. A second sentence! Is this the third?'])
+          \ ==# ['One sentence.', 'A second sentence!', 'Is this the third?']
+  end
 
-call SemBrTestCase(
-      \ 'preserves a line without terminal punctuation',
-      \ ['A line without terminal punctuation'],
-      \ ['A line without terminal punctuation'])
+  it 're-maps split sentences'
+    Expect SemBrTestFormat(['A sentence can span', 'multiple source lines.', 'The next one cannot.'])
+          \ ==# ['A sentence can span multiple source lines.', 'The next one cannot.']
+  end
 
-call SemBrTestCase(
-      \ 'supports ellipses',
-      \ ['A line with ... is supported.'],
-      \ ['A line with ...', 'is supported.'])
+  it 'normalizes whitespace between sentences'
+    Expect SemBrTestFormat(['Sentence one.   Sentence two!'])
+          \ ==# ['Sentence one.', 'Sentence two!']
+  end
 
-call SemBrTestCase(
-      \ 'preserves paragraph, list, and code structure',
-      \ [
-      \    'The first paragraph spans',
-      \    'multiple lines.',
-      \    '',
-      \    '- first unpunctuated item',
-      \    '- second unpunctuated item',
-      \    '    let value = 1',
-      \    '    let next_value = value + 1',
-      \    '',
-      \    'The second paragraph. Another sentence!'
-      \ ],
-      \ [
-      \    'The first paragraph spans multiple lines.',
-      \    '',
-      \    '- first unpunctuated item',
-      \    '- second unpunctuated item',
-      \    '    let value = 1',
-      \    '    let next_value = value + 1',
-      \    '',
-      \    'The second paragraph.',
-      \    'Another sentence!'
-      \ ])
+  it 'preserves a line without terminal punctuation'
+    Expect SemBrTestFormat(['A line without terminal punctuation'])
+          \ ==# ['A line without terminal punctuation']
+  end
 
-call SemBrTestCase(
-      \ 'preserves headings and fenced code blocks',
-      \ [
-      \    '# Heading',
-      \    'Prose sentence. Another sentence!',
-      \    '',
-      \    '```vim',
-      \    'let value = 1',
-      \    'let next_value = value + 1',
-      \    '```'
-      \ ],
-      \ [
-      \    '# Heading',
-      \    'Prose sentence.',
-      \    'Another sentence!',
-      \    '',
-      \    '```vim',
-      \    'let value = 1',
-      \    'let next_value = value + 1',
-      \    '```'
-      \ ])
+  it 'supports ellipses'
+    let actual = SemBrTestFormat(['A line with ... is supported.'])
+    Expect actual ==# ['A line with ...', 'is supported.']
+  end
 
-call SemBrTestCase(
-      \ 'does not open a fence indented by four spaces',
-      \ [
-      \    'Introductory prose.',
-      \    '    ```',
-      \    'Prose sentence. Another sentence!'
-      \ ],
-      \ [
-      \    'Introductory prose.',
-      \    '    ```',
-      \    'Prose sentence.',
-      \    'Another sentence!'
-      \ ])
+  it 'preserves paragraph, list, and code structure'
+    Expect SemBrTestFormat([
+          \ 'The first paragraph spans',
+          \ 'multiple lines.',
+          \ '',
+          \ '- first unpunctuated item',
+          \ '- second unpunctuated item',
+          \ '    let value = 1',
+          \ '    let next_value = value + 1',
+          \ '',
+          \ 'The second paragraph. Another sentence!'
+          \ ]) ==# [
+          \ 'The first paragraph spans multiple lines.',
+          \ '',
+          \ '- first unpunctuated item',
+          \ '- second unpunctuated item',
+          \ '    let value = 1',
+          \ '    let next_value = value + 1',
+          \ '',
+          \ 'The second paragraph.',
+          \ 'Another sentence!'
+          \ ]
+  end
 
-call SemBrTestCase(
-      \ 'preserves indented fence markers inside fenced code blocks',
-      \ [
-      \    '```vim',
-      \    '    ```',
-      \    'gamma. delta!',
-      \    '```',
-      \    'Closing prose. Final sentence?'
-      \ ],
-      \ [
-      \    '```vim',
-      \    '    ```',
-      \    'gamma. delta!',
-      \    '```',
-      \    'Closing prose.',
-      \    'Final sentence?'
-      \ ])
+  it 'preserves headings and fenced code blocks'
+    Expect SemBrTestFormat([
+          \ '# Heading',
+          \ 'Prose sentence. Another sentence!',
+          \ '',
+          \ '```vim',
+          \ 'let value = 1',
+          \ 'let next_value = value + 1',
+          \ '```'
+          \ ]) ==# [
+          \ '# Heading',
+          \ 'Prose sentence.',
+          \ 'Another sentence!',
+          \ '',
+          \ '```vim',
+          \ 'let value = 1',
+          \ 'let next_value = value + 1',
+          \ '```'
+          \ ]
+  end
 
-call SemBrRangeTestCase(
-      \ 'preserves a fenced block when the range starts inside it',
-      \ [
-      \    '```vim',
-      \    'let value = 1',
-      \    'let next_value = value + 1',
-      \    '```',
-      \    'Prose sentence. Another sentence!'
-      \ ],
-      \ 2,
-      \ 5,
-      \ [
-      \    '```vim',
-      \    'let value = 1',
-      \    'let next_value = value + 1',
-      \    '```',
-      \    'Prose sentence.',
-      \    'Another sentence!'
-      \ ])
+  it 'does not open a fence indented by four spaces'
+    Expect SemBrTestFormat([
+          \ 'Introductory prose.',
+          \ '    ```',
+          \ 'Prose sentence. Another sentence!'
+          \ ]) ==# [
+          \ 'Introductory prose.',
+          \ '    ```',
+          \ 'Prose sentence.',
+          \ 'Another sentence!'
+          \ ]
+  end
 
-call SemBrRangeTestCase(
-      \ 'preserves tilde fences and detects range context',
-      \ [
-      \    '~~~vim',
-      \    'let value = 1',
-      \    'let next_value = value + 1',
-      \    '~~~',
-      \    'Prose sentence. Another sentence!'
-      \ ],
-      \ 2,
-      \ 5,
-      \ [
-      \    '~~~vim',
-      \    'let value = 1',
-      \    'let next_value = value + 1',
-      \    '~~~',
-      \    'Prose sentence.',
-      \    'Another sentence!'
-      \ ])
+  it 'preserves indented fence markers inside fenced code blocks'
+    Expect SemBrTestFormat([
+          \ '```vim',
+          \ '    ```',
+          \ 'gamma. delta!',
+          \ '```',
+          \ 'Closing prose. Final sentence?'
+          \ ]) ==# [
+          \ '```vim',
+          \ '    ```',
+          \ 'gamma. delta!',
+          \ '```',
+          \ 'Closing prose.',
+          \ 'Final sentence?'
+          \ ]
+  end
 
-call SemBrRangeTestCase(
-      \ 'formats only the selected prose lines',
-      \ [
-      \    'Before the range remains unchanged.',
-      \    'Selected prose. A second selected sentence!',
-      \    'After the range remains unchanged.'
-      \ ],
-      \ 2,
-      \ 2,
-      \ [
-      \    'Before the range remains unchanged.',
-      \    'Selected prose.',
-      \    'A second selected sentence!',
-      \    'After the range remains unchanged.'
-      \ ])
+  it 'preserves a fenced block when the range starts inside it'
+    Expect SemBrTestFormatRange([
+          \ '```vim',
+          \ 'let value = 1',
+          \ 'let next_value = value + 1',
+          \ '```',
+          \ 'Prose sentence. Another sentence!'
+          \ ], 2, 5) ==# [
+          \ '```vim',
+          \ 'let value = 1',
+          \ 'let next_value = value + 1',
+          \ '```',
+          \ 'Prose sentence.',
+          \ 'Another sentence!'
+          \ ]
+  end
 
-call SemBrRangeTestCase(
-      \ 'removes only surplus lines from the selected range',
-      \ [
-      \    'Before the range remains unchanged.',
-      \    'Selected prose spans',
-      \    'two source lines.',
-      \    'After the range remains unchanged.'
-      \ ],
-      \ 2,
-      \ 3,
-      \ [
-      \    'Before the range remains unchanged.',
-      \    'Selected prose spans two source lines.',
-      \    'After the range remains unchanged.'
-      \ ])
+  it 'preserves tilde fences and detects range context'
+    Expect SemBrTestFormatRange([
+          \ '~~~vim',
+          \ 'let value = 1',
+          \ 'let next_value = value + 1',
+          \ '~~~',
+          \ 'Prose sentence. Another sentence!'
+          \ ], 2, 5) ==# [
+          \ '~~~vim',
+          \ 'let value = 1',
+          \ 'let next_value = value + 1',
+          \ '~~~',
+          \ 'Prose sentence.',
+          \ 'Another sentence!'
+          \ ]
+  end
 
-call SemBrTestCase(
-      \ 'preserves ordered lists as structural sections',
-      \ [
-      \    '# Steps',
-      \    'Introductory prose. Another sentence!',
-      \    '1. First item. Keep this line unchanged.',
-      \    '2. Second item.',
-      \    '    let value = 1',
-      \    '```vim',
-      \    'let next_value = value + 1',
-      \    '```',
-      \    'Closing prose. Final sentence?'
-      \ ],
-      \ [
-      \    '# Steps',
-      \    'Introductory prose.',
-      \    'Another sentence!',
-      \    '1. First item. Keep this line unchanged.',
-      \    '2. Second item.',
-      \    '    let value = 1',
-      \    '```vim',
-      \    'let next_value = value + 1',
-      \    '```',
-      \    'Closing prose.',
-      \    'Final sentence?'
-      \ ])
+  it 'formats only the selected prose lines'
+    Expect SemBrTestFormatRange([
+          \ 'Before the range remains unchanged.',
+          \ 'Selected prose. A second selected sentence!',
+          \ 'After the range remains unchanged.'
+          \ ], 2, 2) ==# [
+          \ 'Before the range remains unchanged.',
+          \ 'Selected prose.',
+          \ 'A second selected sentence!',
+          \ 'After the range remains unchanged.'
+          \ ]
+  end
 
-if len(v:errors)
-  for error in v:errors
-    echom error
-  endfor
-  cquit 1
-endif
+  it 'removes only surplus lines from the selected range'
+    Expect SemBrTestFormatRange([
+          \ 'Before the range remains unchanged.',
+          \ 'Selected prose spans',
+          \ 'two source lines.',
+          \ 'After the range remains unchanged.'
+          \ ], 2, 3) ==# [
+          \ 'Before the range remains unchanged.',
+          \ 'Selected prose spans two source lines.',
+          \ 'After the range remains unchanged.'
+          \ ]
+  end
+
+  it 'preserves ordered lists as structural sections'
+    Expect SemBrTestFormat([
+          \ '# Steps',
+          \ 'Introductory prose. Another sentence!',
+          \ '1. First item. Keep this line unchanged.',
+          \ '2. Second item.',
+          \ '    let value = 1',
+          \ '```vim',
+          \ 'let next_value = value + 1',
+          \ '```',
+          \ 'Closing prose. Final sentence?'
+          \ ]) ==# [
+          \ '# Steps',
+          \ 'Introductory prose.',
+          \ 'Another sentence!',
+          \ '1. First item. Keep this line unchanged.',
+          \ '2. Second item.',
+          \ '    let value = 1',
+          \ '```vim',
+          \ 'let next_value = value + 1',
+          \ '```',
+          \ 'Closing prose.',
+          \ 'Final sentence?'
+          \ ]
+  end
+end

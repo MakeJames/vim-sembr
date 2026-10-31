@@ -78,3 +78,27 @@ please open an issue on GitHub.
 
 If you would like to make a code contribution,
 please fork the repository and submit a pull request.
+
+### Development checks
+
+Run the test suite with Vim:
+
+```sh
+make test
+```
+
+Run it with Neovim:
+
+```sh
+make test VIM=nvim
+```
+
+The test target downloads the pinned
+[vim-vspec](https://github.com/kana/vim-vspec) release to `.vim-vspec/`.
+
+Install the development dependencies and lint the production Vimscript:
+
+```sh
+make install-deps
+make lint
+```
