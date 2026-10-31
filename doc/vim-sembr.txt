@@ -1,0 +1,27 @@
+*vim-sembr.txt* Bring SemBr to Vim!
+
+Author: MakeJames
+License: MIT
+
+INTRODUCTION                          *SemBr*
+
+This plugin is a tool to bring SemBr to Vim.
+It is a work in progress,
+and subject to change.
+
+Vim ships with several built-in commands for formatting text.
+
+For long lines of text, |wrap| and |nowrap|,
+are available to control how text is displayed in the editor.
+Either as a single line or wrapped to fit the width of the window.
+
+Crude formatting commands like |gq| and |gw| are available.
+These commands can be used to reformat text to fit within a specified width.
+
+This plugin provides a more nuanced approach to formatting text in Vim.
+
+- Break lines at semantic boundaries
+- Re-join lines, that were previously broken, into a single line
+- Respect line indentation and whitespace for code blocks and lists
+- Convert whole buffers or selected text
+- Configure the maximum line with (default: 80 characters)
