@@ -112,6 +112,65 @@ call SemBrRangeTestCase(
       \    'Another sentence!'
       \ ])
 
+call SemBrRangeTestCase(
+      \ 'formats only the selected prose lines',
+      \ [
+      \    'Before the range remains unchanged.',
+      \    'Selected prose. A second selected sentence!',
+      \    'After the range remains unchanged.'
+      \ ],
+      \ 2,
+      \ 2,
+      \ [
+      \    'Before the range remains unchanged.',
+      \    'Selected prose.',
+      \    'A second selected sentence!',
+      \    'After the range remains unchanged.'
+      \ ])
+
+call SemBrRangeTestCase(
+      \ 'removes only surplus lines from the selected range',
+      \ [
+      \    'Before the range remains unchanged.',
+      \    'Selected prose spans',
+      \    'two source lines.',
+      \    'After the range remains unchanged.'
+      \ ],
+      \ 2,
+      \ 3,
+      \ [
+      \    'Before the range remains unchanged.',
+      \    'Selected prose spans two source lines.',
+      \    'After the range remains unchanged.'
+      \ ])
+
+call SemBrTestCase(
+      \ 'preserves ordered lists as structural sections',
+      \ [
+      \    '# Steps',
+      \    'Introductory prose. Another sentence!',
+      \    '1. First item. Keep this line unchanged.',
+      \    '2. Second item.',
+      \    '    let value = 1',
+      \    '```vim',
+      \    'let next_value = value + 1',
+      \    '```',
+      \    'Closing prose. Final sentence?'
+      \ ],
+      \ [
+      \    '# Steps',
+      \    'Introductory prose.',
+      \    'Another sentence!',
+      \    '1. First item. Keep this line unchanged.',
+      \    '2. Second item.',
+      \    '    let value = 1',
+      \    '```vim',
+      \    'let next_value = value + 1',
+      \    '```',
+      \    'Closing prose.',
+      \    'Final sentence?'
+      \ ])
+
 if len(v:errors)
   for error in v:errors
     echom error
