@@ -72,13 +72,70 @@ function! s:split_sentences(lines) abort
   return split(l:text, '\([.!?]\)\@<=\s\+')
 endfunction
 
-function! s:split_semantic_prose(lines) abort
+function! s:markdown_protected_ranges(text) abort
+  let l:pattern = '\%(!\?\[[^]]*\](\([^()]*(\([^()]*\)[^()]*)*\|[^()]*\))\|<[^>]*>\|`\+[^`]*`\+\|\*\{1,3}[^*]\+\*\{1,3}\|_\{1,3}[^_]\+_\{1,3}\)'
+  let l:ranges = []
+  let l:offset = 0
+
+  while l:offset < strlen(a:text)
+    let l:start = match(a:text, l:pattern, l:offset)
+    if l:start < 0
+      break
+    endif
+
+    let l:end = matchend(a:text, l:pattern, l:start)
+    call add(l:ranges, [l:start, l:end])
+    let l:offset = l:end
+  endwhile
+
+  return l:ranges
+endfunction
+
+function! s:is_protected(position, ranges) abort
+  for l:range in a:ranges
+    if a:position >= l:range[0] && a:position < l:range[1]
+      return 1
+    endif
+  endfor
+
+  return 0
+endfunction
+
+function! s:split_markdown_sentences(lines) abort
+  let l:text = join(a:lines, ' ')
+  let l:ranges = s:markdown_protected_ranges(l:text)
+  let l:sentences = []
+  let l:start = 0
+  let l:offset = 0
+
+  while l:offset < strlen(l:text)
+    let l:boundary = match(l:text, '\([.!?]\)\@<=\s\+', l:offset)
+    if l:boundary < 0
+      break
+    endif
+
+    if !s:is_protected(l:boundary - 1, l:ranges)
+      call add(l:sentences, strpart(l:text, l:start, l:boundary - l:start))
+      let l:start = matchend(l:text, '\s\+', l:boundary)
+    endif
+    let l:offset = matchend(l:text, '\s\+', l:boundary)
+  endwhile
+
+  call add(l:sentences, strpart(l:text, l:start))
+  return l:sentences
+endfunction
+
+function! s:split_semantic_prose(lines, filetype) abort
+  if a:filetype ==# 'markdown'
+    return s:split_markdown_sentences(a:lines)
+  endif
+
   return s:split_sentences(a:lines)
 endfunction
 
 function! s:format_prose(lines, filetype) abort
   if a:filetype ==# 'markdown' || a:filetype ==# 'text'
-    return s:split_semantic_prose(a:lines)
+    return s:split_semantic_prose(a:lines, a:filetype)
   endif
 
   return s:split_sentences(a:lines)

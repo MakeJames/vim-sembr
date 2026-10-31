@@ -51,6 +51,39 @@ describe 'SemBr'
     Expect SemBrTestFormatAs(lines, 'vim') ==# expected
   end
 
+  it 'does not split sentences inside Markdown inline syntax'
+    let actual = SemBrTestFormatAs([
+          \ 'A [first. second](https://example.com) link. Another sentence!',
+          \ 'An ![first. second](image.png) image. Another sentence!',
+          \ 'Use `first. second` code. Another sentence!',
+          \ 'Use *first. second* emphasis. Another sentence!',
+          \ 'Use **first. second** strong emphasis. Another sentence!',
+          \ '<a title="first. second">A link</a>. Another sentence!',
+          \ 'Visit <https://example.com/first.%20second>. Another sentence!'
+          \ ], 'markdown')
+    let expected = [
+          \ 'A [first. second](https://example.com) link.',
+          \ 'Another sentence!',
+          \ 'An ![first. second](image.png) image.',
+          \ 'Another sentence!',
+          \ 'Use `first. second` code.',
+          \ 'Another sentence!',
+          \ 'Use *first. second* emphasis.',
+          \ 'Another sentence!',
+          \ 'Use **first. second** strong emphasis.',
+          \ 'Another sentence!',
+          \ '<a title="first. second">A link</a>.',
+          \ 'Another sentence!',
+          \ 'Visit <https://example.com/first.%20second>.',
+          \ 'Another sentence!'
+          \ ]
+    Expect actual ==# expected
+    Expect SemBrTestFormatAs(
+          \ ['Use `first. second` code. Another sentence!'],
+          \ 'text'
+          \ ) ==# ['Use `first.', 'second` code.', 'Another sentence!']
+  end
+
   it 'supports ellipses'
     let actual = SemBrTestFormat(['A line with ... is supported.'])
     Expect actual ==# ['A line with ...', 'is supported.']
