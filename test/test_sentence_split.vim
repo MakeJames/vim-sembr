@@ -92,6 +92,26 @@ call SemBrRangeTestCase(
       \    'Another sentence!'
       \ ])
 
+call SemBrRangeTestCase(
+      \ 'preserves tilde fences and detects range context',
+      \ [
+      \    '~~~vim',
+      \    'let value = 1',
+      \    'let next_value = value + 1',
+      \    '~~~',
+      \    'Prose sentence. Another sentence!'
+      \ ],
+      \ 2,
+      \ 5,
+      \ [
+      \    '~~~vim',
+      \    'let value = 1',
+      \    'let next_value = value + 1',
+      \    '~~~',
+      \    'Prose sentence.',
+      \    'Another sentence!'
+      \ ])
+
 if len(v:errors)
   for error in v:errors
     echom error

@@ -16,10 +16,11 @@ endfunction
 
 function! s:is_fence_close(line, fence) abort
   let l:marker = s:fence_marker(a:line)
+  let l:indent = matchstr(a:line, '^\s*')
   return !empty(l:marker)
         \ && l:marker[0] ==# a:fence[0]
         \ && strlen(l:marker) >= strlen(a:fence)
-        \ && a:line =~# '^\s*' . l:marker . '\s*$'
+        \ && strpart(a:line, strlen(l:indent) + strlen(l:marker)) =~# '^\s*$'
 endfunction
 
 function! s:fence_state_before(line_number) abort
