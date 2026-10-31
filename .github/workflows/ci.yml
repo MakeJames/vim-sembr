@@ -14,14 +14,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        vim_type: [vim, neovim]
+        include:
+          - vim_type: vim
+            vim_version: v9.1.0000
+          - vim_type: neovim
+            vim_version: stable
     steps:
       - uses: actions/checkout@v4
       - id: setup-vim
         uses: thinca/action-setup-vim@v3
         with:
           vim_type: ${{ matrix.vim_type }}
-          vim_version: stable
+          vim_version: ${{ matrix.vim_version }}
       - run: make test VIM="${{ steps.setup-vim.outputs.executable }}"
 
   lint:
