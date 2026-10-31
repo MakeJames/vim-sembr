@@ -50,6 +50,48 @@ call SemBrTestCase(
       \    'Another sentence!'
       \ ])
 
+call SemBrTestCase(
+      \ 'preserves headings and fenced code blocks',
+      \ [
+      \    '# Heading',
+      \    'Prose sentence. Another sentence!',
+      \    '',
+      \    '```vim',
+      \    'let value = 1',
+      \    'let next_value = value + 1',
+      \    '```'
+      \ ],
+      \ [
+      \    '# Heading',
+      \    'Prose sentence.',
+      \    'Another sentence!',
+      \    '',
+      \    '```vim',
+      \    'let value = 1',
+      \    'let next_value = value + 1',
+      \    '```'
+      \ ])
+
+call SemBrRangeTestCase(
+      \ 'preserves a fenced block when the range starts inside it',
+      \ [
+      \    '```vim',
+      \    'let value = 1',
+      \    'let next_value = value + 1',
+      \    '```',
+      \    'Prose sentence. Another sentence!'
+      \ ],
+      \ 2,
+      \ 5,
+      \ [
+      \    '```vim',
+      \    'let value = 1',
+      \    'let next_value = value + 1',
+      \    '```',
+      \    'Prose sentence.',
+      \    'Another sentence!'
+      \ ])
+
 if len(v:errors)
   for error in v:errors
     echom error
