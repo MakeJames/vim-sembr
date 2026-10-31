@@ -7,6 +7,14 @@ function! SemBrTestFormat(lines) abort
   return getline(1, '$')
 endfunction
 
+function! SemBrTestFormatAs(lines, filetype) abort
+  enew!
+  let &l:filetype = a:filetype
+  call setline(1, a:lines)
+  SemBr
+  return getline(1, '$')
+endfunction
+
 function! SemBrTestFormatRange(lines, first_line, last_line) abort
   enew!
   call setline(1, a:lines)
@@ -33,6 +41,14 @@ describe 'SemBr'
   it 'preserves a line without terminal punctuation'
     Expect SemBrTestFormat(['A line without terminal punctuation'])
           \ ==# ['A line without terminal punctuation']
+  end
+
+  it 'preserves sentence formatting across filetypes'
+    let lines = ['One sentence. A second sentence!']
+    let expected = ['One sentence.', 'A second sentence!']
+    Expect SemBrTestFormatAs(lines, 'markdown') ==# expected
+    Expect SemBrTestFormatAs(lines, 'text') ==# expected
+    Expect SemBrTestFormatAs(lines, 'vim') ==# expected
   end
 
   it 'supports ellipses'

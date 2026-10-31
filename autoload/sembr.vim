@@ -72,12 +72,24 @@ function! s:split_sentences(lines) abort
   return split(l:text, '\([.!?]\)\@<=\s\+')
 endfunction
 
-function! s:format_sections(sections) abort
+function! s:split_semantic_prose(lines) abort
+  return s:split_sentences(a:lines)
+endfunction
+
+function! s:format_prose(lines, filetype) abort
+  if a:filetype ==# 'markdown' || a:filetype ==# 'text'
+    return s:split_semantic_prose(a:lines)
+  endif
+
+  return s:split_sentences(a:lines)
+endfunction
+
+function! s:format_sections(sections, filetype) abort
   let l:formatted = []
 
   for l:section in a:sections
     if l:section.type ==# 'prose'
-      call extend(l:formatted, s:split_sentences(l:section.lines))
+      call extend(l:formatted, s:format_prose(l:section.lines, a:filetype))
     else
       call extend(l:formatted, l:section.lines)
     endif
@@ -91,7 +103,8 @@ function! sembr#ApplyRange(first_line, last_line) abort
     \ s:segment(
       \ getline(a:first_line, a:last_line),
       \ s:fence_state_before(a:first_line)
-      \ )
+      \ ),
+      \ &filetype
   \ )
   if empty(l:formatted)
     return
