@@ -72,6 +72,38 @@ call SemBrTestCase(
       \    '```'
       \ ])
 
+call SemBrTestCase(
+      \ 'does not open a fence indented by four spaces',
+      \ [
+      \    'Introductory prose.',
+      \    '    ```',
+      \    'Prose sentence. Another sentence!'
+      \ ],
+      \ [
+      \    'Introductory prose.',
+      \    '    ```',
+      \    'Prose sentence.',
+      \    'Another sentence!'
+      \ ])
+
+call SemBrTestCase(
+      \ 'preserves indented fence markers inside fenced code blocks',
+      \ [
+      \    '```vim',
+      \    '    ```',
+      \    'gamma. delta!',
+      \    '```',
+      \    'Closing prose. Final sentence?'
+      \ ],
+      \ [
+      \    '```vim',
+      \    '    ```',
+      \    'gamma. delta!',
+      \    '```',
+      \    'Closing prose.',
+      \    'Final sentence?'
+      \ ])
+
 call SemBrRangeTestCase(
       \ 'preserves a fenced block when the range starts inside it',
       \ [

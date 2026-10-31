@@ -1,5 +1,5 @@
 function! s:fence_marker(line) abort
-  return matchstr(a:line, '^\s*\zs\(```\+\|[~]\{3,}\)')
+  return matchstr(a:line, '^ \{0,3}\zs\(```\+\|[~]\{3,}\)')
 endfunction
 
 function! s:is_fence_close(line, fence) abort
