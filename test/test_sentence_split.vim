@@ -1,3 +1,7 @@
+scriptencoding utf-8
+
+set encoding=utf-8
+
 runtime plugin/vim-sembr.vim
 
 function! SemBrTestFormat(lines) abort
@@ -49,6 +53,41 @@ describe 'SemBr'
     Expect SemBrTestFormatAs(lines, 'markdown') ==# expected
     Expect SemBrTestFormatAs(lines, 'text') ==# expected
     Expect SemBrTestFormatAs(lines, 'vim') ==# expected
+  end
+
+  it 'breaks long prose at comma, semicolon, colon, and em dash boundaries'
+    let dash = nr2char(0x2014)
+    let actual = SemBrTestFormatAs([
+          \ 'The implementation records each relevant decision for later review, and the next clause gives enough context to exceed the recommended line length.',
+          \ 'The implementation records each relevant decision for later review; the next clause gives enough context to exceed the recommended line length.',
+          \ 'The implementation records each relevant decision for later review: the next clause gives enough context to exceed the recommended line length.',
+          \ 'The implementation records each relevant decision for later review ' . dash . ' the next clause gives enough context to exceed the recommended line length.'
+          \ ], 'text')
+    let expected = [
+          \ 'The implementation records each relevant decision for later review,',
+          \ 'and the next clause gives enough context to exceed the recommended line length.',
+          \ 'The implementation records each relevant decision for later review;',
+          \ 'the next clause gives enough context to exceed the recommended line length.',
+          \ 'The implementation records each relevant decision for later review:',
+          \ 'the next clause gives enough context to exceed the recommended line length.',
+          \ 'The implementation records each relevant decision for later review ' . dash,
+          \ 'the next clause gives enough context to exceed the recommended line length.'
+          \ ]
+    Expect actual ==# expected
+  end
+
+  it 'keeps short clauses on one line'
+    Expect SemBrTestFormatAs(
+          \ ['However, this sentence remains below the 75-character threshold.'],
+          \ 'text'
+          \ ) ==# ['However, this sentence remains below the 75-character threshold.']
+  end
+
+  it 'does not split hyphenated words'
+    Expect SemBrTestFormatAs(
+          \ ['This well-formed sentence stays on one line despite its hyphenated word.'],
+          \ 'text'
+          \ ) ==# ['This well-formed sentence stays on one line despite its hyphenated word.']
   end
 
   it 'does not split sentences inside Markdown inline syntax'
