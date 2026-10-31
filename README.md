@@ -2,6 +2,14 @@
 
 Bring the power of [sembr](https://sembr.org/) to Vim!
 
+## ToC
+
+- [What are Semantic Linebreaks?](#what-are-semantic-linebreaks)
+- [What is vim-sembr?](#what-is-vim-sembr)
+- [Usage](#usage)
+- [Installation](#installation)
+- [Contributing](#contributing)
+
 ## What are Semantic Linebreaks?
 
 Semantic Linebreaks is a convention that makes it easier to read
@@ -41,6 +49,15 @@ This plugin provides a more nuanced approach to formatting text in Vim.
 - Respect line indentation and whitespace for code blocks and lists
 - Convert whole buffers or selected text
 - Configure the maximum line with (default: 80 characters)
+
+## Usage
+
+Use `:SemBr` to apply SemBr formatting to the current buffer,
+or provide a range to format only part of it:
+
+```vim
+:10,20SemBr
+```
 
 ## Installation
 

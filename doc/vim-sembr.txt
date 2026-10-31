@@ -25,3 +25,14 @@ This plugin provides a more nuanced approach to formatting text in Vim.
 - Respect line indentation and whitespace for code blocks and lists
 - Convert whole buffers or selected text
 - Configure the maximum line with (default: 80 characters)
+
+USAGE                                           *Sembr-usage*
+
+                                                        *:SemBr*
+:SemBr
+        Apply SemBr formatting to the current buffer.
+        Currently, this splits sentences ending in '.', '!', or '?'
+        followed by whitespace.
+
+:<range>SemBr
+        Apply SemBr formatting to <range>.
