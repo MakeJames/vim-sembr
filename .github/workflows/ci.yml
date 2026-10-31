@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.vim_type }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - vim_type: vim
+            vim_version: v9.1.0000
+          - vim_type: neovim
+            vim_version: stable
+    steps:
+      - uses: actions/checkout@v4
+      - id: setup-vim
+        uses: thinca/action-setup-vim@v3
+        with:
+          vim_type: ${{ matrix.vim_type }}
+          vim_version: ${{ matrix.vim_version }}
+      - run: make test VIM="${{ steps.setup-vim.outputs.executable }}"
+
+  lint:
+    name: Lint Vimscript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: make install-deps && make lint

@@ -1,0 +1,11 @@
+[project]
+name = "vim-sembr-tools"
+version = "0.1.0"
+requires-python = ">=3.11,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "setuptools<81",
+  "vim-vint==0.3.21",
+]
