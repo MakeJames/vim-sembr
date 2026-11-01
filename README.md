@@ -73,6 +73,10 @@ git clone https://github.com/makejames/vim-sembr.git ~/.vim/pack/plugins/start/v
 
 This is a work in progress.
 
+The [parser and orchestration reference](doc/architecture.md) describes the
+experimental document model, planning API, and Markdown tree rule map.
+These stubs can be inspected independently of the existing `:SemBr` formatter.
+
 If you would like to suggest a feature or raise a problem,
 please open an issue on GitHub.
 
@@ -105,3 +109,4 @@ make lint
 
 `make install-deps` uses [uv](https://docs.astral.sh/uv/) to create a local
 `.venv`, avoiding system Python package installation.
+
