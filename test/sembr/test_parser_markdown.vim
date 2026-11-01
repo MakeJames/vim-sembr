@@ -17,6 +17,7 @@ describe 'sembr#parser#markdown#Rules'
           \ 'admonition': {'action': 'preserve'},
           \ 'html_block': {'action': 'preserve'},
           \ 'blockquote': {'action': 'preserve'},
+          \ 'thematic_break': {'action': 'preserve'},
           \ 'heading': {'action': 'preserve'},
           \ 'blank': {'action': 'preserve'},
           \ 'paragraph': {'action': 'format'},
@@ -42,9 +43,23 @@ describe 'sembr#parser#markdown#Parse'
           \     'start': [0, 0],
           \     'end': [0, 0],
           \     'lines': ['One sentence. A second sentence! Is this the third?'],
+          \     'safe': 1,
           \   },
           \ ],
+          \ 'safe': 0,
           \ }
+  end
+
+  it 'marks paragraphs unsafe when formatting would change Markdown structure'
+    let tree = sembr#parser#markdown#Parse(SemBrParserMarkdownTestDocument([
+          \ 'The first thought. 1. This is still prose.',
+          \ '',
+          \ 'First thought.  ',
+          \ 'Second thought. Third thought.',
+          \ ]))
+
+    Expect tree.children[0].safe ==# 0
+    Expect tree.children[2].safe ==# 0
   end
 
   it 'nests list items under a single list node'
@@ -64,14 +79,17 @@ describe 'sembr#parser#markdown#Parse'
           \     'start': [0, 0],
           \     'end': [0, 0],
           \     'lines': ['- first unpunctuated item'],
+          \     'safe': 0,
           \   },
           \   {
           \     'kind': 'list_item',
           \     'start': [1, 0],
           \     'end': [1, 0],
           \     'lines': ['- second unpunctuated item'],
+          \     'safe': 0,
           \   },
           \ ],
+          \ 'safe': 0,
           \ }]
   end
 
@@ -165,7 +183,7 @@ describe 'sembr#parser#markdown#Parse'
     Expect tree.children[0].lines ==# ['~~~vim', 'let value = 1', '~~~']
   end
 
-  it 'preserves YAML front matter only at the document start'
+  it 'preserves YAML front matter extension only at the document start'
     let document = SemBrParserMarkdownTestDocument([
           \ '---',
           \ 'title: SemBr',
@@ -186,7 +204,7 @@ describe 'sembr#parser#markdown#Parse'
           \ ]
   end
 
-  it 'preserves TOML front matter only at the document start'
+  it 'preserves TOML front matter extension only at the document start'
     let document = SemBrParserMarkdownTestDocument([
           \ '+++',
           \ 'title = "SemBr"',
@@ -222,6 +240,7 @@ describe 'sembr#parser#markdown#Parse'
           \   'title: SemBr',
           \   'Prose sentence. Another sentence!',
           \ ],
+          \   'safe': 0,
           \ }]
   end
 
@@ -238,7 +257,7 @@ describe 'sembr#parser#markdown#Parse'
           \ ==# ['heading', 'heading']
   end
 
-  it 'preserves display math blocks'
+  it 'preserves display-math extensions'
     let document = SemBrParserMarkdownTestDocument([
           \ 'Prose sentence.',
           \ '$$',
@@ -279,7 +298,7 @@ describe 'sembr#parser#markdown#Parse'
           \ ]
   end
 
-  it 'preserves pipe tables'
+  it 'preserves pipe-table extensions'
     let document = SemBrParserMarkdownTestDocument([
           \ '| Name | Value |',
           \ '| --- | ---: |',
@@ -298,7 +317,7 @@ describe 'sembr#parser#markdown#Parse'
           \ ]
   end
 
-  it 'does not parse malformed pipe tables'
+  it 'does not parse malformed pipe-table extensions'
     let document = SemBrParserMarkdownTestDocument([
           \ '| Name | Value |',
           \ '| -- | ---: |',
@@ -311,7 +330,7 @@ describe 'sembr#parser#markdown#Parse'
           \ ==# ['preserved', 'paragraph']
   end
 
-  it 'preserves Pandoc definition lists and CommonMark footnotes'
+  it 'preserves definition-list and footnote extensions'
     let document = SemBrParserMarkdownTestDocument([
           \ 'SemBr',
           \ ': A Vim formatter.',
@@ -335,7 +354,7 @@ describe 'sembr#parser#markdown#Parse'
           \ ]
   end
 
-  it 'preserves MkDocs and GitHub alert admonitions'
+  it 'preserves MkDocs and GitHub alert admonition extensions'
     let document = SemBrParserMarkdownTestDocument([
           \ '!!! note',
           \ '  Keep this intact.',
@@ -398,6 +417,12 @@ describe 'sembr#parser#markdown#Parse'
   it 'returns an empty document for no lines'
     let tree = sembr#parser#markdown#Parse(SemBrParserMarkdownTestDocument([]))
 
-    Expect tree ==# {'kind': 'document', 'start': [0, 0], 'end': [0, 0], 'children': []}
+    Expect tree ==# {
+          \ 'kind': 'document',
+          \ 'start': [0, 0],
+          \ 'end': [0, 0],
+          \ 'children': [],
+          \ 'safe': 0,
+          \ }
   end
 end

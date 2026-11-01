@@ -78,6 +78,44 @@ describe 'sembr#engine#Plan'
           \ }]
   end
 
+  it 'does not plan an edit that creates a Markdown block'
+    let tree = {
+          \ 'kind': 'document',
+          \ 'start': [0, 0],
+          \ 'end': [0, 0],
+          \ 'children': [{
+          \   'kind': 'paragraph',
+          \   'start': [0, 0],
+          \   'end': [0, 0],
+          \   'lines': ['The first thought. 1. This is still prose.'],
+          \   'safe': 0,
+          \ }],
+          \ }
+    let rules = sembr#parser#markdown#Rules()
+    let selection = {'start': [0, 0], 'end': [0, 0]}
+
+    Expect sembr#engine#Plan(tree, rules, selection) ==# []
+  end
+
+  it 'does not plan an edit for a paragraph with a hard line break'
+    let tree = {
+          \ 'kind': 'document',
+          \ 'start': [0, 0],
+          \ 'end': [1, 0],
+          \ 'children': [{
+          \   'kind': 'paragraph',
+          \   'start': [0, 0],
+          \   'end': [1, 0],
+          \   'lines': ['First thought.  ', 'Second thought. Third thought.'],
+          \   'safe': 0,
+          \ }],
+          \ }
+    let rules = sembr#parser#markdown#Rules()
+    let selection = {'start': [1, 0], 'end': [1, 0]}
+
+    Expect sembr#engine#Plan(tree, rules, selection) ==# []
+  end
+
   it 'plans no edits for code_block, heading, blank, and list_item nodes'
     let tree = sembr#parser#markdown#Parse({'lines': [
           \ '# Heading',

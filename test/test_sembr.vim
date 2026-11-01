@@ -32,6 +32,28 @@ describe 'SemBr'
           \ ==# ['Sentence one.', 'Sentence two!']
   end
 
+  it 'preserves CommonMark hard line breaks'
+    Expect SemBrTestFormat([
+          \ 'First thought.  ',
+          \ 'Second thought. Third thought.',
+          \ ]) ==# [
+          \ 'First thought.  ',
+          \ 'Second thought. Third thought.',
+          \ ]
+    Expect SemBrTestFormat([
+          \ 'First thought.' . nr2char(92),
+          \ 'Second thought. Third thought.',
+          \ ]) ==# [
+          \ 'First thought.' . nr2char(92),
+          \ 'Second thought. Third thought.',
+          \ ]
+  end
+
+  it 'does not turn prose into an ordered list'
+    let input = 'The first thought. ' . '1. This is still prose.'
+    Expect SemBrTestFormat([input]) ==# [input]
+  end
+
   it 'preserves a line without terminal punctuation'
     Expect SemBrTestFormat(['A line without terminal punctuation'])
           \ ==# ['A line without terminal punctuation']
@@ -151,7 +173,7 @@ describe 'SemBr'
           \ ]
   end
 
-  it 'preserves front matter, math blocks, and tables'
+  it 'preserves front matter, math blocks, and pipe-table extensions'
     Expect SemBrTestFormat([
           \ '---',
           \ 'title: SemBr',
@@ -178,7 +200,7 @@ describe 'SemBr'
           \ ]
   end
 
-  it 'preserves extended Markdown structures'
+  it 'preserves definition-list, footnote, and admonition extensions'
     Expect SemBrTestFormat([
           \ 'Term',
           \ ': A definition.',

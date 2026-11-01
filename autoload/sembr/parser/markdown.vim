@@ -1,4 +1,13 @@
-" Markdown reference adapter for SemBr
+" Markdown reference adapter for SemBr.
+"
+" Supports CommonMark blocks and preserves selected Markdown extensions:
+" front matter, display math, pipe tables, definition lists, footnotes,
+" and MkDocs or GitHub alert admonitions.
+"
+" Some conservative assumptions are made here about the structure
+" and formatting of the document and each line.
+" These assumptions can be relaxed in future versions,
+" once more sophisticated engine features are implemented.
 
 function! s:fence_marker(line) abort
   return matchstr(a:line, '^ \{0,3}\zs\(```\+\|[~]\{3,}\)')
@@ -21,22 +30,24 @@ function! s:unmatched_object() abort
         \ 'kind': '',
         \ 'lines': [],
         \ 'complete': 0,
+        \ 'safe': 0,
         \ }
 
 endfunction
 
-function! s:matched_object(kind, lines, complete) abort
+function! s:matched_object(kind, lines, complete, ...) abort
   return {
         \ 'matched': 1,
         \ 'kind': a:kind,
         \ 'lines': a:lines,
         \ 'complete': a:complete,
+        \ 'safe': a:0 ? a:1 : 0,
         \ }
 
 endfunction
 
 function! s:unrecognised_block(lines, start_index) abort
-  return s:matched_object('preserved', a:lines[a:start_index :], 1)
+  return s:matched_object('preserved', a:lines[a:start_index :], 1, 0)
 
 endfunction
 
@@ -349,14 +360,14 @@ function! s:parse_paragraph(line, _, _a, previous_line_kind) abort
   "
   " The first character needs to be a non-whitespace A-Z or a-z character.
   if a:line =~# '^\s*[A-Za-z]'
-    return s:matched_object('paragraph', a:line, 0)
+    return s:matched_object('paragraph', a:line, 0, 1)
   endif
 
   " Allow for paragraphs that are continued from the previous line.
   " Lists should have a blank line between them and the paragraph.
   " images and lines, may be continued without a blank line.
   if a:previous_line_kind ==# 'paragraph' && a:line =~# '^\s*\S'
-    return s:matched_object('paragraph', a:line, 0)
+    return s:matched_object('paragraph', a:line, 0, 1)
   endif
 
   return s:unmatched_object()
@@ -365,7 +376,7 @@ endfunction
 
 function! s:parse_list(line, _, _a, previous_line_kind) abort
   " Parse a list starting at the current line.
-  if a:line =~# '^\s*\%([-*+]\|\d\+[.)]\)\s\+'
+  if a:line =~# '^\s*\%([-*+]\|\d\+[.)]\)\%(\s\|$\)'
     return s:matched_object('list', a:line, 0)
   endif
 
@@ -388,6 +399,17 @@ function! s:parse_blockquote(line, _, _a, _b) abort
 
 endfunction
 
+function! s:parse_thematic_break(line, _, _a, _b) abort
+  if a:line =~# '^\s\{0,3}\%(-\s*\)\{3,}$'
+        \ || a:line =~# '^\s\{0,3}\%(\*\s*\)\{3,}$'
+        \ || a:line =~# '^\s\{0,3}\%(_\s*\)\{3,}$'
+    return s:matched_object('thematic_break', [a:line], 1)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
 function! s:preserved_block(line) abort
     " Return a match object for a line that should be preserved.
     return {
@@ -395,21 +417,12 @@ function! s:preserved_block(line) abort
           \ 'kind': 'preserved',
           \ 'lines': [a:line],
           \ 'complete': 0,
+          \ 'safe': 0,
           \ }
 
 endfunction
 
-function! s:parse_next_line(line, lines, start_index, previous_line_kind) abort
-  " Parse the next block of lines, returning a match object.
-  "
-  " Parameters:
-  "   line: the current line to parse
-  "
-  " Returns:
-  "   a match object with the following fields:
-  "     matched: whether a block was matched
-  "     kind: the kind of block matched
-  "     lines: the lines of the block matched
+function! s:match_block(line, lines, start_index, previous_line_kind) abort
   for l:Parser in [
           \ function('s:parse_blank'),
           \ function('s:parse_front_matter'),
@@ -424,7 +437,7 @@ function! s:parse_next_line(line, lines, start_index, previous_line_kind) abort
           \ function('s:parse_heading'),
           \ function('s:parse_html_block'),
           \ function('s:parse_blockquote'),
-          \ function('s:parse_paragraph'),
+          \ function('s:parse_thematic_break'),
           \ ]
     let l:result = call(
             \ l:Parser,
@@ -440,6 +453,50 @@ function! s:parse_next_line(line, lines, start_index, previous_line_kind) abort
     endif
   endfor
 
+  return s:unmatched_object()
+
+endfunction
+
+function! s:formatted_lines(lines) abort
+  return split(join(a:lines, ' '), '\([.!?]\)\@<=\s\+')
+
+endfunction
+
+function! s:paragraph_is_safe(lines) abort
+  if len(a:lines) > 1
+    for l:line in a:lines[0 : -2]
+      if l:line =~# ' \{2,}$\|\\$'
+        return 0
+      endif
+    endfor
+  endif
+
+  let l:lines = s:formatted_lines(a:lines)
+  for l:index in range(len(l:lines))
+    if l:lines[l:index] =~# '^\s*+++\s*$'
+          \ || s:match_block(l:lines[l:index], l:lines, l:index, '').matched
+      return 0
+    endif
+  endfor
+
+  return 1
+
+endfunction
+
+function! s:parse_next_line(line, lines, start_index, previous_line_kind) abort
+  " Parse the next block of lines, returning a match object.
+  let l:match = s:match_block(
+        \ a:line, a:lines, a:start_index, a:previous_line_kind)
+  if l:match.matched
+    return l:match
+  endif
+
+  let l:match = s:parse_paragraph(
+        \ a:line, a:lines, a:start_index, a:previous_line_kind)
+  if l:match.matched
+    return l:match
+  endif
+
   return s:preserved_block(a:line)
 
 endfunction
@@ -454,6 +511,7 @@ function! s:list_node(start_line, lines) abort
           \ 'start': [l:line, 0],
           \ 'end': [l:line, 0],
           \ 'lines': [a:lines[l:offset]],
+          \ 'safe': 0,
           \ })
   endfor
 
@@ -462,16 +520,18 @@ function! s:list_node(start_line, lines) abort
         \ 'start': [a:start_line, 0],
         \ 'end': [a:start_line + len(a:lines) - 1, 0],
         \ 'children': l:children,
+        \ 'safe': 0,
         \ }
 
 endfunction
 
-function! s:leaf_node(kind, start_line, lines) abort
+function! s:leaf_node(kind, start_line, lines, safe) abort
   return {
         \ 'kind': a:kind,
         \ 'start': [a:start_line, 0],
         \ 'end': [a:start_line + len(a:lines) - 1, 0],
         \ 'lines': a:lines,
+        \ 'safe': a:safe,
         \ }
 
 endfunction
@@ -490,6 +550,7 @@ function! sembr#parser#markdown#Parse(document) abort
   "     kind: the kind of node (see sembr#parser#markdown#Rules)
   "     start: the start position of the node [line, column] (0-indexed)
   "     end: the end position of the node [line, column] (0-indexed)
+  "     safe: whether formatting the node preserves Markdown structure
   "     lines: the lines of the node (only for leaf nodes)
   "     children: the child nodes of the node (only for non-leaf nodes)
   "     }
@@ -497,6 +558,7 @@ function! sembr#parser#markdown#Parse(document) abort
   let l:kind = ''
   let l:start_line = 0
   let l:buffer = []
+  let l:safe = 1
 
   let l:index = 0
   while l:index < len(a:document.lines)
@@ -509,12 +571,19 @@ function! sembr#parser#markdown#Parse(document) abort
       if !empty(l:buffer)
         call add(l:children,
               \ l:kind ==# 'list' ? s:list_node(l:start_line, l:buffer)
-              \                   : s:leaf_node(l:kind, l:start_line, l:buffer))
+              \                   : s:leaf_node(
+              \                       l:kind,
+              \                       l:start_line,
+              \                       l:buffer,
+              \                       l:safe && (l:kind !=# 'paragraph'
+              \                         || s:paragraph_is_safe(l:buffer))))
         let l:buffer = []
+        let l:safe = 1
       endif
 
       " If the match is complete, add it to the children and reset the buffer.
-      call add(l:children, s:leaf_node(l:match.kind, l:index, l:match.lines))
+      call add(l:children, s:leaf_node(
+            \ l:match.kind, l:index, l:match.lines, l:match.safe))
       let l:index += len(l:match.lines)
       let l:start_line = l:index
       let l:kind = ''
@@ -524,8 +593,14 @@ function! sembr#parser#markdown#Parse(document) abort
     if l:kind !=# l:match.kind && !empty(l:buffer)
       call add(l:children,
             \ l:kind ==# 'list' ? s:list_node(l:start_line, l:buffer)
-            \                   : s:leaf_node(l:kind, l:start_line, l:buffer))
+            \                   : s:leaf_node(
+            \                       l:kind,
+            \                       l:start_line,
+            \                       l:buffer,
+            \                       l:safe && (l:kind !=# 'paragraph'
+            \                         || s:paragraph_is_safe(l:buffer))))
       let l:buffer = []
+      let l:safe = 1
     endif
 
     if empty(l:buffer)
@@ -534,6 +609,7 @@ function! sembr#parser#markdown#Parse(document) abort
 
     let l:kind = l:match.kind
     call add(l:buffer, l:match.lines)
+    let l:safe = l:safe && l:match.safe
 
     let l:index += 1
   endwhile
@@ -541,7 +617,12 @@ function! sembr#parser#markdown#Parse(document) abort
   if !empty(l:buffer)
     call add(l:children,
           \ l:kind ==# 'list' ? s:list_node(l:start_line, l:buffer)
-          \                   : s:leaf_node(l:kind, l:start_line, l:buffer))
+          \                   : s:leaf_node(
+          \                       l:kind,
+          \                       l:start_line,
+          \                       l:buffer,
+          \                       l:safe && (l:kind !=# 'paragraph'
+          \                         || s:paragraph_is_safe(l:buffer))))
   endif
 
   return {
@@ -549,11 +630,13 @@ function! sembr#parser#markdown#Parse(document) abort
         \ 'start': [0, 0],
         \ 'end': [max([len(a:document.lines) - 1, 0]), 0],
         \ 'children': l:children,
+        \ 'safe': 0,
         \ }
 
 endfunction
 
 function! sembr#parser#markdown#Rules() abort
+  " Preserve blocks from Markdown extensions as well as CommonMark blocks.
   return {
         \ 'document': {'action': 'descend'},
         \ 'list': {'action': 'descend'},
@@ -567,6 +650,7 @@ function! sembr#parser#markdown#Rules() abort
         \ 'admonition': {'action': 'preserve'},
         \ 'html_block': {'action': 'preserve'},
         \ 'blockquote': {'action': 'preserve'},
+        \ 'thematic_break': {'action': 'preserve'},
         \ 'heading': {'action': 'preserve'},
         \ 'blank': {'action': 'preserve'},
         \ 'paragraph': {'action': 'format'},

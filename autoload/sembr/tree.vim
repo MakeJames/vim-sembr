@@ -4,6 +4,7 @@
 "   kind: string, the node kind (eg: 'paragraph', 'list', 'code_block')
 "   start: [line, col], 0-indexed inclusive start position
 "   end: [line, col], 0-indexed inclusive end position
+"   safe: whether the node can be formatted without changing syntax
 "   lines: list of strings (leaf nodes), or
 "   children: list of nodes (container nodes)
 "
