@@ -32,6 +32,28 @@ describe 'SemBr'
           \ ==# ['Sentence one.', 'Sentence two!']
   end
 
+  it 'preserves CommonMark hard line breaks'
+    Expect SemBrTestFormat([
+          \ 'First thought.  ',
+          \ 'Second thought. Third thought.',
+          \ ]) ==# [
+          \ 'First thought.  ',
+          \ 'Second thought. Third thought.',
+          \ ]
+    Expect SemBrTestFormat([
+          \ 'First thought.' . nr2char(92),
+          \ 'Second thought. Third thought.',
+          \ ]) ==# [
+          \ 'First thought.' . nr2char(92),
+          \ 'Second thought. Third thought.',
+          \ ]
+  end
+
+  it 'does not turn prose into an ordered list'
+    let input = 'The first thought. ' . '1. This is still prose.'
+    Expect SemBrTestFormat([input]) ==# [input]
+  end
+
   it 'preserves a line without terminal punctuation'
     Expect SemBrTestFormat(['A line without terminal punctuation'])
           \ ==# ['A line without terminal punctuation']
@@ -148,6 +170,97 @@ describe 'SemBr'
           \ '~~~',
           \ 'Prose sentence.',
           \ 'Another sentence!'
+          \ ]
+  end
+
+  it 'preserves front matter, math blocks, and pipe-table extensions'
+    Expect SemBrTestFormat([
+          \ '---',
+          \ 'title: SemBr',
+          \ '---',
+          \ '$$',
+          \ 'E = mc^2',
+          \ '$$',
+          \ '| Name | Value |',
+          \ '| --- | ---: |',
+          \ '| SemBr | 1 |',
+          \ 'Prose sentence. Another sentence!'
+          \ ]) ==# [
+          \ '---',
+          \ 'title: SemBr',
+          \ '---',
+          \ '$$',
+          \ 'E = mc^2',
+          \ '$$',
+          \ '| Name | Value |',
+          \ '| --- | ---: |',
+          \ '| SemBr | 1 |',
+          \ 'Prose sentence.',
+          \ 'Another sentence!'
+          \ ]
+  end
+
+  it 'preserves definition-list, footnote, and admonition extensions'
+    Expect SemBrTestFormat([
+          \ 'Term',
+          \ ': A definition.',
+          \ '[^note]: A footnote.',
+          \ '!!! note',
+          \ '  An admonition.',
+          \ '> [!TIP]',
+          \ '> An alert.',
+          \ '<!--',
+          \ 'A comment.',
+          \ '-->',
+          \ 'Prose sentence. Another sentence!'
+          \ ]) ==# [
+          \ 'Term',
+          \ ': A definition.',
+          \ '[^note]: A footnote.',
+          \ '!!! note',
+          \ '  An admonition.',
+          \ '> [!TIP]',
+          \ '> An alert.',
+          \ '<!--',
+          \ 'A comment.',
+          \ '-->',
+          \ 'Prose sentence.',
+          \ 'Another sentence!'
+          \ ]
+  end
+
+  it 'does not format unclosed multi-line blocks'
+    Expect SemBrTestFormat([
+          \ '---',
+          \ 'title: SemBr',
+          \ 'Prose sentence. Another sentence!'
+          \ ]) ==# [
+          \ '---',
+          \ 'title: SemBr',
+          \ 'Prose sentence. Another sentence!'
+          \ ]
+    Expect SemBrTestFormat([
+          \ '$$',
+          \ 'E = mc^2. Another sentence!'
+          \ ]) ==# [
+          \ '$$',
+          \ 'E = mc^2. Another sentence!'
+          \ ]
+    Expect SemBrTestFormat([
+          \ '<!--',
+          \ 'A comment. Another sentence!'
+          \ ]) ==# [
+          \ '<!--',
+          \ 'A comment. Another sentence!'
+          \ ]
+    Expect SemBrTestFormat([
+          \ '```vim',
+          \ 'let value = 1',
+          \ 'Prose sentence. Another sentence!'
+          \ ]) ==# [
+          \ '```vim',
+          \ 'let value = 1',
+          \ 'Prose sentence. Another sentence!'
           \ ]
   end
 

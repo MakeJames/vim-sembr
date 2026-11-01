@@ -20,17 +20,18 @@ function! s:visit_impl(node, in_selection) dict abort
 
     return l:edits
 
-  elseif l:rule.action ==# 'format' && a:in_selection
+  elseif l:rule.action ==# 'format' && a:in_selection && get(a:node, 'safe', 1)
     let l:first_line = max([a:node.start[0], l:self.selection.start[0]])
     let l:last_line = min([a:node.end[0], l:self.selection.end[0]])
     let l:lines = a:node.lines[
                 \ l:first_line - a:node.start[0] :
                 \ l:last_line - a:node.start[0]]
+    let l:replacement = s:split_sentences(l:lines)
 
     return [{
           \ 'start': [l:first_line, 0],
           \ 'end': [l:last_line, 0],
-          \ 'lines': s:split_sentences(l:lines),
+          \ 'lines': l:replacement,
           \ }]
   endif
 
@@ -41,8 +42,7 @@ endfunction
 function! sembr#engine#Plan(tree, rules, selection) abort
   " Walk a parser's tree, applying each node's rule action:
   "   - 'descend': recurse into the node's children
-  "   - 'format': re-split the node's lines into sentences, but only when the
-  "               node overlaps the selection
+  "   - 'format': re-split safe nodes that overlap the selection into sentences
   "   - anything else (eg: 'preserve', or an action missing): no edit
   "
   " Returns:

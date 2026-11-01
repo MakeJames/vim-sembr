@@ -13,6 +13,7 @@ describe 'sembr#parser#fallback#Parse'
           \ 'start': [0, 0],
           \ 'end': [2, 0],
           \ 'lines': ['one', 'two', 'three'],
+          \ 'safe': 0,
           \ }
   end
 
@@ -22,6 +23,7 @@ describe 'sembr#parser#fallback#Parse'
           \ 'start': [0, 0],
           \ 'end': [0, 0],
           \ 'lines': [],
+          \ 'safe': 0,
           \ }
   end
 end
