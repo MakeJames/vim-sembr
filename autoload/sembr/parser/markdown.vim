@@ -2,6 +2,7 @@
 
 function! s:fence_marker(line) abort
   return matchstr(a:line, '^ \{0,3}\zs\(```\+\|[~]\{3,}\)')
+
 endfunction
 
 function! s:is_fence_close(line, fence) abort
@@ -11,6 +12,7 @@ function! s:is_fence_close(line, fence) abort
         \ && l:marker[0] ==# a:fence[0]
         \ && strlen(l:marker) >= strlen(a:fence)
         \ && strpart(a:line, strlen(l:indent) + strlen(l:marker)) =~# '^\s*$'
+
 endfunction
 
 function! s:line_kind(line) abort
@@ -28,6 +30,205 @@ function! s:line_kind(line) abort
   " This is a major simplification of the Markdown spec,
   " but it is sufficient for mapping out the internal structure of SemBr.
   return 'paragraph'
+
+endfunction
+
+function! s:unmatched_object() abort
+  return {
+        \ 'matched': 0,
+        \ 'kind': '',
+        \ 'lines': [],
+        \ 'complete': 0,
+        \ }
+
+endfunction
+
+function! s:mached_object(kind, lines, complete) abort
+  return {
+        \ 'matched': 1,
+        \ 'kind': a:kind,
+        \ 'lines': a:lines,
+        \ 'complete': a:complete,
+        \ }
+
+endfunction
+
+function! s:parse_blank(line, _, _a, _b) abort
+  if a:line =~# '^\s*$'
+    return s:mached_object('blank', [a:line], 1)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:parse_heading(line, lines, start_index, _) abort
+  " Parse a heading line
+  "
+  " Handles Markdown, ATX and Setext headings, e.g.:
+  "   # Heading 1
+  "
+  "   ## Heading 2 ##
+  "
+  "   Heading 1
+  "   ========
+  "
+  "   Heading 2
+  "   --------
+  if a:line =~# '^#\+\%(\s\|$\)'
+    return s:mached_object('heading', [a:line], 1)
+  endif
+
+  " allow for ATX headings with closing hashes, e.g. "## Heading ##"
+  if a:line =~# '^#\+\s\+\S.*\S\s*#\+$'
+    return s:mached_object('heading', [a:line], 1)
+  endif
+
+  " allow for Setext headings, e.g. "Heading\n======" or "Heading\n------"
+  if a:start_index + 1 < len(a:lines)
+    let l:next_line = a:lines[a:start_index + 1]
+    if l:next_line =~# '^\s*\(=\+\|-\+\)\s*$'
+      return s:mached_object('heading', [a:line, l:next_line], 1)
+    endif
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:parse_code_block(line, lines, start_index, _) abort
+  " Parse a code block starting at the current line.
+  "
+  " If the current line is a fence marker,
+  " this parser will consume all lines until the next matching fence marker.
+  let l:fence = s:fence_marker(a:line)
+
+  if !empty(l:fence)
+    let l:code_lines = [a:line]
+    let l:index = a:start_index + 1
+
+    if l:index >= len(a:lines)
+      return s:unmatched_object()
+    endif
+
+    while l:index < len(a:lines)
+      let l:next_line = a:lines[l:index]
+
+      call add(l:code_lines, l:next_line)
+
+      if s:is_fence_close(l:next_line, l:fence)
+        return s:mached_object('code_block', l:code_lines, 1)
+      endif
+
+      let l:index += 1
+
+    endwhile
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:parse_indented_code_block(line, _, _a, _b) abort
+  if a:line =~# '^\s\+'
+    return s:mached_object('code_block', a:line, 0)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:parse_paragraph(line, _, _a, previous_line_kind) abort
+  " Parse a paragraph starting at the current line.
+  "
+  " The first character needs to be a non-whitespace A-Z or a-z character.
+  if a:line =~# '^\s*[A-Za-z]'
+    return s:mached_object('paragraph', a:line, 0)
+  endif
+
+  " Allow for paragraphs that are continued from the previous line.
+  " Lists should have a blank line between them and the paragraph.
+  " images and lines, may be continued without a blank line.
+  if a:previous_line_kind ==# 'paragraph' && a:line =~# '^\s*\S'
+    return s:mached_object('paragraph', a:line, 0)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:parse_list(line, _, _a, previous_line_kind) abort
+  " Parse a list starting at the current line.
+  if a:line =~# '^\s*\%([-*+]\|\d\+[.)]\)\s\+'
+    return s:mached_object('list', a:line, 0)
+  endif
+
+  " Allow for lists that are continued from the previous line.
+  if a:previous_line_kind ==# 'list' && a:line =~# '^\s*\S'
+    return s:mached_object('list', a:line, 0)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:parse_blockquote(line, _, _a, _b) abort
+  " Parse a blockquote starting at the current line.
+  if a:line =~# '^\s*>'
+    return s:mached_object('blockquote', a:line, 0)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:preserved_block(line) abort
+    " Return a match object for a line that should be preserved.
+    return {
+          \ 'matched': 0,
+          \ 'kind': 'preserved',
+          \ 'lines': [a:line],
+          \ 'complete': 0,
+          \ }
+
+endfunction
+
+function! s:parse_next_line(line, lines, start_index, previous_line_kind) abort
+  " Parse the next block of lines, returning a match object.
+  "
+  " Parameters:
+  "   line: the current line to parse
+  "
+  " Returns:
+  "   a match object with the following fields:
+  "     matched: whether a block was matched
+  "     kind: the kind of block matched
+  "     lines: the lines of the block matched
+  for l:Parser in [
+          \ function('s:parse_blank'),
+          \ function('s:parse_code_block'),
+          \ function('s:parse_indented_code_block'),
+          \ function('s:parse_list'),
+          \ function('s:parse_heading'),
+          \ function('s:parse_blockquote'),
+          \ function('s:parse_paragraph'),
+          \ ]
+    let l:result = call(
+            \ l:Parser,
+            \ [
+            \   a:line,
+            \   a:lines,
+            \   a:start_index,
+            \   a:previous_line_kind,
+            \ ])
+
+    if l:result.matched
+      return l:result
+    endif
+  endfor
+
+  return s:preserved_block(a:line)
+
 endfunction
 
 function! s:list_node(start_line, lines) abort
@@ -49,6 +250,7 @@ function! s:list_node(start_line, lines) abort
         \ 'end': [a:start_line + len(a:lines) - 1, 0],
         \ 'children': l:children,
         \ }
+
 endfunction
 
 function! s:leaf_node(kind, start_line, lines) abort
@@ -58,6 +260,7 @@ function! s:leaf_node(kind, start_line, lines) abort
         \ 'end': [a:start_line + len(a:lines) - 1, 0],
         \ 'lines': a:lines,
         \ }
+
 endfunction
 
 function! sembr#parser#markdown#Parse(document) abort
@@ -81,13 +284,31 @@ function! sembr#parser#markdown#Parse(document) abort
   let l:kind = ''
   let l:start_line = 0
   let l:buffer = []
-  let l:fence = ''
 
-  for l:index in range(len(a:document.lines))
+  let l:index = 0
+  while l:index < len(a:document.lines)
     let l:line = a:document.lines[l:index]
-    let l:line_kind = empty(l:fence) ? s:line_kind(l:line) : 'code_block'
 
-    if !empty(l:buffer) && l:line_kind !=# l:kind
+    let l:match = s:parse_next_line(l:line, a:document.lines, l:index, l:kind)
+
+    if l:match.matched && l:match.complete
+      " check to see if the buffer is empty, if not, add it to the children
+      if !empty(l:buffer)
+        call add(l:children,
+              \ l:kind ==# 'list' ? s:list_node(l:start_line, l:buffer)
+              \                   : s:leaf_node(l:kind, l:start_line, l:buffer))
+        let l:buffer = []
+      endif
+
+      " If the match is complete, add it to the children and reset the buffer.
+      call add(l:children, s:leaf_node(l:match.kind, l:index, l:match.lines))
+      let l:index += len(l:match.lines)
+      let l:start_line = l:index
+      let l:kind = ''
+      continue
+    endif
+
+    if l:kind !=# l:match.kind && !empty(l:buffer)
       call add(l:children,
             \ l:kind ==# 'list' ? s:list_node(l:start_line, l:buffer)
             \                   : s:leaf_node(l:kind, l:start_line, l:buffer))
@@ -97,15 +318,12 @@ function! sembr#parser#markdown#Parse(document) abort
     if empty(l:buffer)
       let l:start_line = l:index
     endif
-    let l:kind = l:line_kind
-    call add(l:buffer, l:line)
 
-    if empty(l:fence)
-      let l:fence = s:fence_marker(l:line)
-    elseif s:is_fence_close(l:line, l:fence)
-      let l:fence = ''
-    endif
-  endfor
+    let l:kind = l:match.kind
+    call add(l:buffer, l:match.lines)
+
+    let l:index += 1
+  endwhile
 
   if !empty(l:buffer)
     call add(l:children,
@@ -119,6 +337,7 @@ function! sembr#parser#markdown#Parse(document) abort
         \ 'end': [max([len(a:document.lines) - 1, 0]), 0],
         \ 'children': l:children,
         \ }
+
 endfunction
 
 function! sembr#parser#markdown#Rules() abort
@@ -127,8 +346,11 @@ function! sembr#parser#markdown#Rules() abort
         \ 'list': {'action': 'descend'},
         \ 'list_item': {'action': 'preserve'},
         \ 'code_block': {'action': 'preserve'},
+        \ 'blockquote': {'action': 'preserve'},
         \ 'heading': {'action': 'preserve'},
         \ 'blank': {'action': 'preserve'},
         \ 'paragraph': {'action': 'format'},
+        \ 'preserved': {'action': 'preserve'},
         \ }
+
 endfunction

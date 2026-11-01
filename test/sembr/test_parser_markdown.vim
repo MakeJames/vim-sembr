@@ -9,9 +9,11 @@ describe 'sembr#parser#markdown#Rules'
           \ 'list': {'action': 'descend'},
           \ 'list_item': {'action': 'preserve'},
           \ 'code_block': {'action': 'preserve'},
+          \ 'blockquote': {'action': 'preserve'},
           \ 'heading': {'action': 'preserve'},
           \ 'blank': {'action': 'preserve'},
           \ 'paragraph': {'action': 'format'},
+          \ 'preserved': {'action': 'preserve'},
           \ }
   end
 end
