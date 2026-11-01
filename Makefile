@@ -18,7 +18,7 @@ install-deps: verify-deps $(VSPEC_DIR)/bin/prove-vspec
 	$(UV) sync --group dev
 
 test: $(VSPEC_DIR)/bin/prove-vspec lint-test
-	VSPEC_VIM="$(VIM)" "$(VSPEC_DIR)/bin/prove-vspec" -d "$(CURDIR)" test/
+	VSPEC_VIM="$(VIM)" "$(VSPEC_DIR)/bin/prove-vspec" -d "$(CURDIR)" -- --recurse test/
 
 lint:
 	PYTHONWARNINGS="ignore:pkg_resources is deprecated as an API:UserWarning" \
