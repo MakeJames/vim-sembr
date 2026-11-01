@@ -12,7 +12,9 @@ INDENT_SIZE = 2
 FUNCTION_PATTERN = re.compile(r'^\s*function!?\s+([^(]+)\(')
 INDENTATION_PATTERN = re.compile(r'^[ \t]*')
 SCRIPT_LOCAL_FUNCTION_PATTERN = re.compile(r'^s:[a-z][a-z0-9_]*$')
-PUBLIC_FUNCTION_PATTERN = re.compile(r'^sembr#[A-Z][a-zA-Z0-9]*$')
+PUBLIC_FUNCTION_PATTERN = re.compile(
+    r'^sembr#(?:[a-z][a-z0-9_]*#)*[A-Z][a-zA-Z0-9]*$'
+)
 
 
 def lint_file(path: Path) -> list[str]:
@@ -44,7 +46,7 @@ def lint_file(path: Path) -> list[str]:
         if not valid_name:
             violations.append(
                 f'{path}:{line_number}: invalid function name {function_name!r}; '
-                "use s:snake_case or sembr#PascalCase"
+                "use s:snake_case or sembr#[namespace#]PascalCase"
             )
 
     return violations

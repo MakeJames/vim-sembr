@@ -1,16 +1,18 @@
 runtime plugin/vim-sembr.vim
 
-function! SemBrTestFormat(lines) abort
+function! SemBrTestFormat(lines, ...) abort
   enew!
+  let &filetype = a:0 ? a:1 : 'markdown'
   call setline(1, a:lines)
   SemBr
   return getline(1, '$')
 endfunction
 
-function! SemBrTestFormatRange(lines, first_line, last_line) abort
+function! SemBrTestFormatRange(lines, first_line, last_line, ...) abort
   enew!
+  let &filetype = a:0 ? a:1 : 'markdown'
   call setline(1, a:lines)
-  call sembr#ApplyRange(a:first_line, a:last_line)
+  call sembr#Format(a:first_line, a:last_line)
   return getline(1, '$')
 endfunction
 
@@ -198,6 +200,61 @@ describe 'SemBr'
           \ '```',
           \ 'Closing prose.',
           \ 'Final sentence?'
+          \ ]
+  end
+
+  it 'does not format unsupported filetypes'
+    Expect SemBrTestFormat([
+          \ 'Prose sentence. Another sentence!',
+          \ '    let value = 1',
+          \ ], 'python') ==# [
+          \ 'Prose sentence. Another sentence!',
+          \ '    let value = 1',
+          \ ]
+  end
+
+  it 'does not format a buffer with no filetype set'
+    Expect SemBrTestFormat([
+          \ 'Prose sentence. Another sentence!',
+          \ ], '') ==# [
+          \ 'Prose sentence. Another sentence!',
+          \ ]
+  end
+
+  it 'formats a representative README-style document'
+    Expect SemBrTestFormat([
+          \ '# vim-sembr',
+          \ '',
+          \ 'Bring semantic linebreaks to vim. SemBr splits prose into one',
+          \ 'sentence per line, while leaving code and structure untouched.',
+          \ '',
+          \ '## Usage',
+          \ '',
+          \ 'Select a range and run `:SemBr`. Or run it over the whole buffer.',
+          \ '',
+          \ '- Works on markdown files.',
+          \ '- Leaves fenced code blocks alone.',
+          \ '',
+          \ '```vim',
+          \ 'let value = 1',
+          \ '```'
+          \ ]) ==# [
+          \ '# vim-sembr',
+          \ '',
+          \ 'Bring semantic linebreaks to vim.',
+          \ 'SemBr splits prose into one sentence per line, while leaving code and structure untouched.',
+          \ '',
+          \ '## Usage',
+          \ '',
+          \ 'Select a range and run `:SemBr`.',
+          \ 'Or run it over the whole buffer.',
+          \ '',
+          \ '- Works on markdown files.',
+          \ '- Leaves fenced code blocks alone.',
+          \ '',
+          \ '```vim',
+          \ 'let value = 1',
+          \ '```'
           \ ]
   end
 end
