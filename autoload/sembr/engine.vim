@@ -21,11 +21,16 @@ function! s:visit_impl(node, in_selection) dict abort
     return l:edits
 
   elseif l:rule.action ==# 'format' && a:in_selection
+    let l:first_line = max([a:node.start[0], l:self.selection.start[0]])
+    let l:last_line = min([a:node.end[0], l:self.selection.end[0]])
+    let lines = a:node.lines[
+                \ l:first_line - a:node.start[0] :
+                \ l:last_line - a:node.start[0]]
 
     return [{
-          \ 'start': a:node.start,
-          \ 'end': a:node.end,
-          \ 'lines': s:split_sentences(a:node.lines),
+          \ 'start': [l:first_line, 0],
+          \ 'end': [l:last_line, 0],
+          \ 'lines': s:split_sentences(l:lines),
           \ }]
   endif
 

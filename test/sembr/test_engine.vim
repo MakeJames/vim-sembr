@@ -51,6 +51,33 @@ describe 'sembr#engine#Plan'
           \ }]
   end
 
+  it 'plans only enough edits for a partial paragraph selection'
+    let tree = {
+          \ 'kind': 'document',
+          \ 'start': [0, 0],
+          \ 'end': [0, 0],
+          \ 'children': [{
+          \   'kind': 'paragraph',
+          \   'start': [0, 0],
+          \   'end': [0, 0],
+          \   'lines': [
+          \             'One sentence. A second sentence!',
+          \             'Third sentence. A fourth sentence!',
+          \            ],
+          \ }],
+          \ }
+    let rules = sembr#parser#markdown#Rules()
+    let selection = {'start': [0, 0], 'end': [0, 0]}
+    Expect sembr#engine#Plan(tree, rules, selection) ==# [{
+          \ 'start': [0, 0],
+          \ 'end': [0, 0],
+          \ 'lines': [
+          \             'One sentence.',
+          \             'A second sentence!',
+          \            ],
+          \ }]
+  end
+
   it 'plans no edits for code_block, heading, blank, and list_item nodes'
     let tree = sembr#parser#markdown#Parse({'lines': [
           \ '# Heading',
