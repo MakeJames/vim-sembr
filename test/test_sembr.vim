@@ -151,6 +151,97 @@ describe 'SemBr'
           \ ]
   end
 
+  it 'preserves front matter, math blocks, and tables'
+    Expect SemBrTestFormat([
+          \ '---',
+          \ 'title: SemBr',
+          \ '---',
+          \ '$$',
+          \ 'E = mc^2',
+          \ '$$',
+          \ '| Name | Value |',
+          \ '| --- | ---: |',
+          \ '| SemBr | 1 |',
+          \ 'Prose sentence. Another sentence!'
+          \ ]) ==# [
+          \ '---',
+          \ 'title: SemBr',
+          \ '---',
+          \ '$$',
+          \ 'E = mc^2',
+          \ '$$',
+          \ '| Name | Value |',
+          \ '| --- | ---: |',
+          \ '| SemBr | 1 |',
+          \ 'Prose sentence.',
+          \ 'Another sentence!'
+          \ ]
+  end
+
+  it 'preserves extended Markdown structures'
+    Expect SemBrTestFormat([
+          \ 'Term',
+          \ ': A definition.',
+          \ '[^note]: A footnote.',
+          \ '!!! note',
+          \ '  An admonition.',
+          \ '> [!TIP]',
+          \ '> An alert.',
+          \ '<!--',
+          \ 'A comment.',
+          \ '-->',
+          \ 'Prose sentence. Another sentence!'
+          \ ]) ==# [
+          \ 'Term',
+          \ ': A definition.',
+          \ '[^note]: A footnote.',
+          \ '!!! note',
+          \ '  An admonition.',
+          \ '> [!TIP]',
+          \ '> An alert.',
+          \ '<!--',
+          \ 'A comment.',
+          \ '-->',
+          \ 'Prose sentence.',
+          \ 'Another sentence!'
+          \ ]
+  end
+
+  it 'does not format unclosed multi-line blocks'
+    Expect SemBrTestFormat([
+          \ '---',
+          \ 'title: SemBr',
+          \ 'Prose sentence. Another sentence!'
+          \ ]) ==# [
+          \ '---',
+          \ 'title: SemBr',
+          \ 'Prose sentence. Another sentence!'
+          \ ]
+    Expect SemBrTestFormat([
+          \ '$$',
+          \ 'E = mc^2. Another sentence!'
+          \ ]) ==# [
+          \ '$$',
+          \ 'E = mc^2. Another sentence!'
+          \ ]
+    Expect SemBrTestFormat([
+          \ '<!--',
+          \ 'A comment. Another sentence!'
+          \ ]) ==# [
+          \ '<!--',
+          \ 'A comment. Another sentence!'
+          \ ]
+    Expect SemBrTestFormat([
+          \ '```vim',
+          \ 'let value = 1',
+          \ 'Prose sentence. Another sentence!'
+          \ ]) ==# [
+          \ '```vim',
+          \ 'let value = 1',
+          \ 'Prose sentence. Another sentence!'
+          \ ]
+  end
+
   it 'formats only the selected prose lines'
     Expect SemBrTestFormatRange([
           \ 'Before the range remains unchanged.',
