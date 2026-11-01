@@ -1,2 +1,4 @@
 .vim-vspec/
+.vim-testify/
 .venv/
+__pycache__/

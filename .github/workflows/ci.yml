@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 permissions:
@@ -21,12 +23,15 @@ jobs:
             vim_version: stable
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - id: setup-vim
         uses: thinca/action-setup-vim@v3
         with:
           vim_type: ${{ matrix.vim_type }}
           vim_version: ${{ matrix.vim_version }}
-      - run: make test VIM="${{ steps.setup-vim.outputs.executable }}"
+      - run: make install-deps && make test VIM="${{ steps.setup-vim.outputs.executable }}"
 
   lint:
     name: Lint Vimscript
