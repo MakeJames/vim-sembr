@@ -1,13 +1,4 @@
 " Markdown reference adapter for SemBr
-"
-" Notable exclusions to be added later
-"   - tables
-"   - definition lists
-"   - footnotes
-"   - math blocks
-"   - admonitions
-"   - HTML blocks
-"   - YAML front matter
 
 function! s:fence_marker(line) abort
   return matchstr(a:line, '^ \{0,3}\zs\(```\+\|[~]\{3,}\)')
@@ -34,7 +25,7 @@ function! s:unmatched_object() abort
 
 endfunction
 
-function! s:mached_object(kind, lines, complete) abort
+function! s:matched_object(kind, lines, complete) abort
   return {
         \ 'matched': 1,
         \ 'kind': a:kind,
@@ -44,9 +35,44 @@ function! s:mached_object(kind, lines, complete) abort
 
 endfunction
 
+function! s:unrecognised_block(lines, start_index) abort
+  return s:matched_object('preserved', a:lines[a:start_index :], 1)
+
+endfunction
+
+function! s:lookahead(lines, start, Stop, include, required) abort
+  let l:result = [a:lines[a:start]]
+  let l:index = a:start + 1
+
+  while l:index < len(a:lines)
+    let l:line = a:lines[l:index]
+    if s:matches_stop(l:line, a:Stop)
+      if a:include
+        call add(l:result, l:line)
+      endif
+      return l:result
+    endif
+
+    call add(l:result, l:line)
+    let l:index += 1
+  endwhile
+
+  return a:required ? [] : l:result
+
+endfunction
+
+function! s:matches_stop(line, Stop) abort
+  if type(a:Stop) == type(function('tr'))
+    return call(a:Stop, [a:line])
+  endif
+
+  return a:line =~# a:Stop
+
+endfunction
+
 function! s:parse_blank(line, _, _a, _b) abort
   if a:line =~# '^\s*$'
-    return s:mached_object('blank', [a:line], 1)
+    return s:matched_object('blank', [a:line], 1)
   endif
 
   return s:unmatched_object()
@@ -67,19 +93,19 @@ function! s:parse_heading(line, lines, start_index, _) abort
   "   Heading 2
   "   --------
   if a:line =~# '^#\+\%(\s\|$\)'
-    return s:mached_object('heading', [a:line], 1)
+    return s:matched_object('heading', [a:line], 1)
   endif
 
   " allow for ATX headings with closing hashes, e.g. "## Heading ##"
   if a:line =~# '^#\+\s\+\S.*\S\s*#\+$'
-    return s:mached_object('heading', [a:line], 1)
+    return s:matched_object('heading', [a:line], 1)
   endif
 
   " allow for Setext headings, e.g. "Heading\n======" or "Heading\n------"
   if a:start_index + 1 < len(a:lines)
     let l:next_line = a:lines[a:start_index + 1]
     if l:next_line =~# '^\s*\(=\+\|-\+\)\s*$'
-      return s:mached_object('heading', [a:line, l:next_line], 1)
+      return s:matched_object('heading', [a:line, l:next_line], 1)
     endif
   endif
 
@@ -108,12 +134,14 @@ function! s:parse_code_block(line, lines, start_index, _) abort
       call add(l:code_lines, l:next_line)
 
       if s:is_fence_close(l:next_line, l:fence)
-        return s:mached_object('code_block', l:code_lines, 1)
+        return s:matched_object('code_block', l:code_lines, 1)
       endif
 
       let l:index += 1
 
     endwhile
+
+    return s:unrecognised_block(a:lines, a:start_index)
   endif
 
   return s:unmatched_object()
@@ -122,7 +150,194 @@ endfunction
 
 function! s:parse_indented_code_block(line, _, _a, _b) abort
   if a:line =~# '^\s\+'
-    return s:mached_object('code_block', a:line, 0)
+    return s:matched_object('code_block', a:line, 0)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:is_front_matter_close(line) abort
+  return a:line =~# '^---\s*$\|^\.\.\.\s*$'
+
+endfunction
+
+function! s:is_toml_front_matter_close(line) abort
+  return a:line =~# '^+++\s*$'
+
+endfunction
+
+function! s:parse_front_matter(line, lines, start_index, _) abort
+  if a:start_index == 0 && a:line =~# '^---\s*$\|^+++\s*$'
+    let l:Stop = a:line =~# '^+++' ? function('s:is_toml_front_matter_close')
+          \ : function('s:is_front_matter_close')
+    let l:front_matter = s:lookahead(
+          \ a:lines, a:start_index, l:Stop, 1, 1)
+    if !empty(l:front_matter)
+      return s:matched_object('front_matter', l:front_matter, 1)
+    endif
+
+    return s:unrecognised_block(a:lines, a:start_index)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:is_math_block_close(line) abort
+  return a:line =~# '^\s*\$\$\s*$'
+
+endfunction
+
+function! s:parse_math_block(line, lines, start_index, _) abort
+  if s:is_math_block_close(a:line)
+    let l:math_block = s:lookahead(
+          \ a:lines, a:start_index, function('s:is_math_block_close'), 1, 1)
+    if !empty(l:math_block)
+      return s:matched_object('math_block', l:math_block, 1)
+    endif
+
+    return s:unrecognised_block(a:lines, a:start_index)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:is_not_table_row(line) abort
+  return a:line !~# '|'
+
+endfunction
+
+function! s:parse_table(line, lines, start_index, _) abort
+  if a:line =~# '|' && a:start_index + 1 < len(a:lines)
+    let l:separator = a:lines[a:start_index + 1]
+    if l:separator =~# '^\s*|\?\s*:\?---\+:\?\s*\(|\s*:\?---\+:\?\s*\)*|\?\s*$'
+      let l:table_lines = [a:line]
+            \ + s:lookahead(
+            \ a:lines, a:start_index + 1, function('s:is_not_table_row'), 0, 0)
+      return s:matched_object('table', l:table_lines, 1)
+    endif
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:is_not_definition_line(line) abort
+  return a:line !~# '^\s*:\s\+\S\|^\s\+'
+
+endfunction
+
+function! s:parse_definition_list(line, lines, start_index, _) abort
+  if a:start_index + 1 < len(a:lines)
+    let l:definition = a:lines[a:start_index + 1]
+    if a:line =~# '^\S' && l:definition =~# '^\s*:\s\+\S'
+      let l:lines = [a:line] + s:lookahead(
+            \ a:lines, a:start_index + 1,
+            \ function('s:is_not_definition_line'), 0, 0)
+      return s:matched_object('definition_list', l:lines, 1)
+    endif
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:is_not_indented(line) abort
+  return a:line !~# '^\s\+'
+
+endfunction
+
+function! s:parse_footnote(line, lines, start_index, _) abort
+  if a:line =~# '^\[\^[^]]\+\]:\s\+\S'
+    let l:lines = s:lookahead(
+          \ a:lines, a:start_index, function('s:is_not_indented'), 0, 0)
+    return s:matched_object('footnote', l:lines, 1)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:is_not_blockquote(line) abort
+  return a:line !~# '^\s*>'
+
+endfunction
+
+function! s:parse_admonition(line, lines, start_index, _) abort
+  if a:line =~# '^\s*!!!\s\+\S'
+    let l:lines = s:lookahead(
+          \ a:lines, a:start_index, function('s:is_not_indented'), 0, 0)
+    return s:matched_object('admonition', l:lines, 1)
+  endif
+
+  if a:line =~# '^\s*>\s*\[!\%(NOTE\|TIP\|IMPORTANT\|WARNING\|CAUTION\)\]'
+    let l:lines = s:lookahead(
+          \ a:lines, a:start_index, function('s:is_not_blockquote'), 0, 0)
+    return s:matched_object('admonition', l:lines, 1)
+  endif
+
+  return s:unmatched_object()
+
+endfunction
+
+function! s:is_blank(line) abort
+  return a:line =~# '^\s*$'
+
+endfunction
+
+function! s:html_block_close_pattern(line) abort
+  if a:line =~# '^\s*<!--'
+    return '-->'
+  endif
+  if a:line =~# '^\s*<?'
+    return '?>'
+  endif
+  if a:line =~# '^\s*<!\[CDATA\['
+    return '\]\]>'
+  endif
+  if a:line =~# '^\s*<![A-Z]'
+    return '>'
+  endif
+  if a:line =~? '^\s*</\?\%(script\|pre\|style\|textarea\)\%(\s\|>\)'
+    return '</\s*\%(script\|pre\|style\|textarea\)\s*>'
+  endif
+
+  return ''
+
+endfunction
+
+function! s:is_html_block_tag(line) abort
+  let l:tags = '\%(address\|article\|aside\|base\|basefont\|blockquote\|body'
+        \ . '\|caption\|center\|col\|colgroup\|dd\|details\|dialog\|dir\|div'
+        \ . '\|dl\|dt\|fieldset\|figcaption\|figure\|footer\|form\|h[1-6]'
+        \ . '\|head\|header\|hr\|html\|iframe\|legend\|li\|link\|main\|menu'
+        \ . '\|menuitem\|nav\|ol\|p\|picture\|plaintext\|section\|summary'
+        \ . '\|table\|tbody\|td\|tfoot\|th\|thead\|title\|tr\|track\|ul\|wbr\)'
+  return a:line =~? '^\s*</\?' . l:tags . '\%(\s\|/\?>\|$\)'
+
+endfunction
+
+function! s:parse_html_block(line, lines, start_index, _) abort
+  let l:close = s:html_block_close_pattern(a:line)
+  if !empty(l:close)
+    if a:line =~? l:close
+      return s:matched_object('html_block', [a:line], 1)
+    endif
+
+    let l:lines = s:lookahead(a:lines, a:start_index, l:close, 1, 1)
+    if !empty(l:lines)
+      return s:matched_object('html_block', l:lines, 1)
+    endif
+
+    return s:unrecognised_block(a:lines, a:start_index)
+  endif
+
+  if s:is_html_block_tag(a:line)
+    let l:lines = s:lookahead(
+          \ a:lines, a:start_index, function('s:is_blank'), 0, 0)
+    return s:matched_object('html_block', l:lines, 1)
   endif
 
   return s:unmatched_object()
@@ -134,14 +349,14 @@ function! s:parse_paragraph(line, _, _a, previous_line_kind) abort
   "
   " The first character needs to be a non-whitespace A-Z or a-z character.
   if a:line =~# '^\s*[A-Za-z]'
-    return s:mached_object('paragraph', a:line, 0)
+    return s:matched_object('paragraph', a:line, 0)
   endif
 
   " Allow for paragraphs that are continued from the previous line.
   " Lists should have a blank line between them and the paragraph.
   " images and lines, may be continued without a blank line.
   if a:previous_line_kind ==# 'paragraph' && a:line =~# '^\s*\S'
-    return s:mached_object('paragraph', a:line, 0)
+    return s:matched_object('paragraph', a:line, 0)
   endif
 
   return s:unmatched_object()
@@ -151,12 +366,12 @@ endfunction
 function! s:parse_list(line, _, _a, previous_line_kind) abort
   " Parse a list starting at the current line.
   if a:line =~# '^\s*\%([-*+]\|\d\+[.)]\)\s\+'
-    return s:mached_object('list', a:line, 0)
+    return s:matched_object('list', a:line, 0)
   endif
 
   " Allow for lists that are continued from the previous line.
   if a:previous_line_kind ==# 'list' && a:line =~# '^\s*\S'
-    return s:mached_object('list', a:line, 0)
+    return s:matched_object('list', a:line, 0)
   endif
 
   return s:unmatched_object()
@@ -166,7 +381,7 @@ endfunction
 function! s:parse_blockquote(line, _, _a, _b) abort
   " Parse a blockquote starting at the current line.
   if a:line =~# '^\s*>'
-    return s:mached_object('blockquote', a:line, 0)
+    return s:matched_object('blockquote', a:line, 0)
   endif
 
   return s:unmatched_object()
@@ -197,10 +412,17 @@ function! s:parse_next_line(line, lines, start_index, previous_line_kind) abort
   "     lines: the lines of the block matched
   for l:Parser in [
           \ function('s:parse_blank'),
+          \ function('s:parse_front_matter'),
           \ function('s:parse_code_block'),
+          \ function('s:parse_math_block'),
           \ function('s:parse_indented_code_block'),
+          \ function('s:parse_table'),
+          \ function('s:parse_definition_list'),
+          \ function('s:parse_footnote'),
+          \ function('s:parse_admonition'),
           \ function('s:parse_list'),
           \ function('s:parse_heading'),
+          \ function('s:parse_html_block'),
           \ function('s:parse_blockquote'),
           \ function('s:parse_paragraph'),
           \ ]
@@ -337,6 +559,13 @@ function! sembr#parser#markdown#Rules() abort
         \ 'list': {'action': 'descend'},
         \ 'list_item': {'action': 'preserve'},
         \ 'code_block': {'action': 'preserve'},
+        \ 'front_matter': {'action': 'preserve'},
+        \ 'math_block': {'action': 'preserve'},
+        \ 'table': {'action': 'preserve'},
+        \ 'definition_list': {'action': 'preserve'},
+        \ 'footnote': {'action': 'preserve'},
+        \ 'admonition': {'action': 'preserve'},
+        \ 'html_block': {'action': 'preserve'},
         \ 'blockquote': {'action': 'preserve'},
         \ 'heading': {'action': 'preserve'},
         \ 'blank': {'action': 'preserve'},
