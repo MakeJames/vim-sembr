@@ -23,7 +23,7 @@ function! s:visit_impl(node, in_selection) dict abort
   elseif l:rule.action ==# 'format' && a:in_selection
     let l:first_line = max([a:node.start[0], l:self.selection.start[0]])
     let l:last_line = min([a:node.end[0], l:self.selection.end[0]])
-    let lines = a:node.lines[
+    let l:lines = a:node.lines[
                 \ l:first_line - a:node.start[0] :
                 \ l:last_line - a:node.start[0]]
 
@@ -60,8 +60,7 @@ endfunction
 function! s:assert_non_overlapping(edits) abort
   " Guardrail against overlapping edits.
   "
-  " This is protects against misconfigured rule sets
-  " or parsing defects.
+  " This protects against misconfigured rule sets or parsing defects.
   for l:index in range(1, max([len(a:edits) - 1, 0]))
     if a:edits[l:index].start[0] <= a:edits[l:index - 1].end[0]
       throw 'sembr: overlapping edits'
