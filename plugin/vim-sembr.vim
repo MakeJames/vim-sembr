@@ -8,4 +8,4 @@ if exists('g:loaded_vim_sembr')
 endif
 let g:loaded_vim_sembr = 1
 
-command! -range=% SemBr call sembr#ApplyRange(<line1>, <line2>)
+command! -range=% SemBr call sembr#Format(<line1>, <line2>)

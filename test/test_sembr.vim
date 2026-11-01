@@ -12,7 +12,7 @@ function! SemBrTestFormatRange(lines, first_line, last_line, ...) abort
   enew!
   let &filetype = a:0 ? a:1 : 'markdown'
   call setline(1, a:lines)
-  call sembr#ApplyRange(a:first_line, a:last_line)
+  call sembr#Format(a:first_line, a:last_line)
   return getline(1, '$')
 endfunction
 

@@ -1,6 +1,6 @@
 " Entry point for the :SemBr command.
 
-function! sembr#ApplyRange(first_line, last_line) abort
+function! sembr#Format(first_line, last_line) abort
   " Format a line range of the current buffer according to the SemBr
   " standard, dispatching to the appropriate parser for its filetype.
   "
