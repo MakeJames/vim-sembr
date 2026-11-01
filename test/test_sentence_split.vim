@@ -26,6 +26,14 @@ function! SemBrTestFormatRange(lines, first_line, last_line) abort
   return getline(1, '$')
 endfunction
 
+function! SemBrTestFormatRangeAs(lines, filetype, first_line, last_line) abort
+  enew!
+  let &l:filetype = a:filetype
+  call setline(1, a:lines)
+  call sembr#ApplyRange(a:first_line, a:last_line)
+  return getline(1, '$')
+endfunction
+
 describe 'SemBr'
   it 'splits multiple sentences on one line'
     Expect SemBrTestFormat(['One sentence. A second sentence! Is this the third?'])
@@ -121,6 +129,30 @@ describe 'SemBr'
           \ ['Use `first. second` code. Another sentence!'],
           \ 'text'
           \ ) ==# ['Use `first.', 'second` code.', 'Another sentence!']
+  end
+
+  it 'breaks long Markdown prose only outside inline syntax'
+    let actual = SemBrTestFormatAs([
+          \ 'The guide preserves `first, second, and third` inline code, while the subsequent explanation deliberately exceeds the recommended line length.'
+          \ ], 'markdown')
+    Expect actual ==# [
+          \ 'The guide preserves `first, second, and third` inline code,',
+          \ 'while the subsequent explanation deliberately exceeds the recommended line length.'
+          \ ]
+  end
+
+  it 'formats only the selected text range at clause boundaries'
+    let actual = SemBrTestFormatRangeAs([
+          \ 'The preceding line remains unchanged.',
+          \ 'The selected explanation introduces the formatter behavior, and deliberately contains enough additional detail to exceed the recommended line length.',
+          \ 'The following line remains unchanged.'
+          \ ], 'text', 2, 2)
+    Expect actual ==# [
+          \ 'The preceding line remains unchanged.',
+          \ 'The selected explanation introduces the formatter behavior,',
+          \ 'and deliberately contains enough additional detail to exceed the recommended line length.',
+          \ 'The following line remains unchanged.'
+          \ ]
   end
 
   it 'supports ellipses'
