@@ -22,6 +22,8 @@ def test_accepts_project_function_conventions(tmp_path):
         'function! s:split_sentences(lines) abort\n'
         'endfunction\n'
         'function! sembr#ApplyRange(first_line, last_line) abort\n'
+        'endfunction\n'
+        'function! sembr#document#Snapshot(buffer, first_line, last_line) abort\n'
         'endfunction\n',
         tmp_path,
     ) == []
