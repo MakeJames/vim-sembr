@@ -74,105 +74,15 @@ function! s:split_sentences(lines) abort
   return split(l:text, '\([.!?]\)\@<=\s\+')
 endfunction
 
-function! s:markdown_protected_ranges(text) abort
-  let l:pattern = '\%(!\?\[[^]]*\](\([^()]*(\([^()]*\)[^()]*)*\|[^()]*\))\|<[^>]*>\|`\+[^`]*`\+\|\*\{1,3}[^*]\+\*\{1,3}\|_\{1,3}[^_]\+_\{1,3}\)'
-  let l:ranges = []
-  let l:offset = 0
-
-  while l:offset < strlen(a:text)
-    let l:start = match(a:text, l:pattern, l:offset)
-    if l:start < 0
-      break
-    endif
-
-    let l:end = matchend(a:text, l:pattern, l:start)
-    call add(l:ranges, [l:start, l:end])
-    let l:offset = l:end
-  endwhile
-
-  return l:ranges
-endfunction
-
-function! s:is_protected(position, ranges) abort
-  for l:range in a:ranges
-    if a:position >= l:range[0] && a:position < l:range[1]
-      return 1
-    endif
-  endfor
-
-  return 0
-endfunction
-
-function! s:split_semantic_text(text, ranges) abort
-  let l:formatted = []
-  let l:line_start = 0
-  let l:last_clause_end = -1
-  let l:last_clause_next = -1
-  let l:offset = 0
-
-  while l:offset < strlen(a:text)
-    let l:punctuation_start = match(
-          \ a:text, '\([.!?,;:]\|\%u2014\)\ze\s\+', l:offset)
-    if l:punctuation_start < 0
-      break
-    endif
-
-    let l:punctuation = matchstr(
-          \ a:text, '\([.!?,;:]\|\%u2014\)\ze\s\+', l:punctuation_start)
-    let l:punctuation_end = l:punctuation_start + strlen(l:punctuation)
-    let l:next = matchend(a:text, '\s\+', l:punctuation_end)
-
-    if s:is_protected(l:punctuation_start, a:ranges)
-      let l:offset = l:next
-      continue
-    endif
-
-    let l:line = strpart(
-          \ a:text, l:line_start, l:punctuation_end - l:line_start)
-    if l:punctuation =~# '[.!?]'
-      if strdisplaywidth(l:line) > 80 && l:last_clause_end >= l:line_start
-        call add(l:formatted, strpart(
-              \ a:text, l:line_start, l:last_clause_end - l:line_start))
-        let l:line_start = l:last_clause_next
-      endif
-      call add(l:formatted, strpart(
-            \ a:text, l:line_start, l:punctuation_end - l:line_start))
-      let l:line_start = l:next
-      let l:last_clause_end = -1
-      let l:last_clause_next = -1
-    elseif strdisplaywidth(l:line) > 80 && l:last_clause_end >= l:line_start
-      call add(l:formatted, strpart(
-            \ a:text, l:line_start, l:last_clause_end - l:line_start))
-      let l:line_start = l:last_clause_next
-      let l:last_clause_end = l:punctuation_end
-      let l:last_clause_next = l:next
-    else
-      let l:last_clause_end = l:punctuation_end
-      let l:last_clause_next = l:next
-    endif
-
-    let l:offset = l:next
-  endwhile
-
-  let l:line = strpart(a:text, l:line_start)
-  if strdisplaywidth(l:line) > 80 && l:last_clause_end >= l:line_start
-    call add(l:formatted, strpart(
-          \ a:text, l:line_start, l:last_clause_end - l:line_start))
-    let l:line_start = l:last_clause_next
-  endif
-  call add(l:formatted, strpart(a:text, l:line_start))
-  return l:formatted
-endfunction
-
 function! s:split_semantic_prose(lines, filetype) abort
   let l:text = join(a:lines, ' ')
 
   if a:filetype ==# 'markdown'
-    return s:split_semantic_text(
-          \ l:text, s:markdown_protected_ranges(l:text))
+    return sembr#prose#format(
+          \ l:text, sembr#markdown#protected_ranges(l:text))
   endif
 
-  return s:split_semantic_text(l:text, [])
+  return sembr#prose#format(l:text, [])
 endfunction
 
 function! s:format_prose(lines, filetype) abort
