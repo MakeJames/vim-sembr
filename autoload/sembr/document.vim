@@ -1,5 +1,6 @@
 " Document functions for Sembr
 
+
 function! sembr#document#Document(buffer, first_line, last_line) abort
   " Create a snapshot of the current buffer.
   "
@@ -46,3 +47,41 @@ function! sembr#document#Document(buffer, first_line, last_line) abort
 endfunction
 
 
+function! sembr#document#Apply(document, plan) abort
+  " Apply a plan of edits to the buffer.
+  "
+  " Parameters:
+  "   document: a snapshot from sembr#document#Document
+  "   plan: a list of edits, each {
+  "     start: the start position of the edit [line, column] (0-indexed)
+  "     end: the end position of the edit [line, column] (0-indexed)
+  "     lines: the replacement lines for the start/end range
+  "   }
+  "
+  " Throws:
+  "   'sembr: the buffer has changed since the document was snapshotted'
+  if getbufvar(a:document.buffer, 'changedtick') !=# a:document.changedtick
+    " This check will need to be updated
+    " if this function is ever called in an async context.
+    throw 'sembr: the buffer has changed since the document was snapshotted'
+  endif
+
+  for l:edit in reverse(copy(a:plan))
+    let l:first_line = l:edit.start[0] + 1
+    let l:last_line = l:edit.end[0] + 1
+    let l:original_count = l:last_line - l:first_line + 1
+    let l:overlap_count = min([l:original_count, len(l:edit.lines)])
+
+    call setbufline(
+          \ a:document.buffer, l:first_line,
+          \ l:edit.lines[0 : l:overlap_count - 1])
+
+    if len(l:edit.lines) > l:original_count
+      call appendbufline(
+            \ a:document.buffer, l:last_line, l:edit.lines[l:original_count :])
+    elseif len(l:edit.lines) < l:original_count
+      call deletebufline(
+            \ a:document.buffer, l:first_line + len(l:edit.lines), l:last_line)
+    endif
+  endfor
+endfunction

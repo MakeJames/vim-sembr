@@ -181,3 +181,104 @@ describe 'SemBr yaml document snapshots'
           \ }
   end
 end
+
+function! SemBrDocumentTestSnapshot(lines) abort
+  call SemBrDocumentTestResetBuffer(a:lines)
+  return sembr#document#Document(bufnr('%'), 1, max([len(a:lines), 1]))
+endfunction
+
+describe 'sembr#document#Apply'
+  before
+    enew!
+  end
+
+  after
+    bwipeout!
+  end
+
+  it 'replaces a single line range in place'
+    let document = SemBrDocumentTestSnapshot(['one', 'two', 'three'])
+    call sembr#document#Apply(document, [
+          \ {'start': [1, 0], 'end': [1, 0], 'lines': ['TWO']},
+          \ ])
+
+    Expect getline(1, '$') ==# ['one', 'TWO', 'three']
+  end
+
+  it 'expands a range when an edit has more lines than it replaces'
+    let document = SemBrDocumentTestSnapshot(['one', 'two', 'three'])
+    call sembr#document#Apply(document, [
+          \ {'start': [1, 0], 'end': [1, 0], 'lines': ['two', 'and a half']},
+          \ ])
+
+    Expect getline(1, '$') ==# ['one', 'two', 'and a half', 'three']
+  end
+
+  it 'shrinks a range when an edit has fewer lines than it replaces'
+    let document = SemBrDocumentTestSnapshot(['one', 'two', 'and a half', 'three'])
+    call sembr#document#Apply(document, [
+          \ {'start': [1, 0], 'end': [2, 0], 'lines': ['two']},
+          \ ])
+
+    Expect getline(1, '$') ==# ['one', 'two', 'three']
+  end
+
+  it 'applies multiple edits without earlier edits invalidating later ones'
+    let document = SemBrDocumentTestSnapshot(
+          \ ['first. second!', 'untouched', 'third. fourth!'])
+    call sembr#document#Apply(document, [
+          \ {'start': [0, 0], 'end': [0, 0], 'lines': ['1st.', '2nd!']},
+          \ {'start': [2, 0], 'end': [2, 0], 'lines': ['3rd.', '4th!']},
+          \ ])
+
+    Expect getline(1, '$') ==# [
+          \ '1st.', '2nd!', 'untouched', '3rd.', '4th!',
+          \ ]
+  end
+
+  it 'applies edits on adjacent lines without overwriting each other'
+    let document = SemBrDocumentTestSnapshot(['one. two!', 'three. four!'])
+    call sembr#document#Apply(document, [
+          \ {'start': [0, 0], 'end': [0, 0], 'lines': ['one.', 'two!']},
+          \ {'start': [1, 0], 'end': [1, 0], 'lines': ['three.', 'four!']},
+          \ ])
+
+    Expect getline(1, '$') ==# ['one.', 'two!', 'three.', 'four!']
+  end
+
+  it 'removes a range entirely when an edit has no replacement lines'
+    let document = SemBrDocumentTestSnapshot(['one', 'two', 'three'])
+    call sembr#document#Apply(document, [
+          \ {'start': [1, 0], 'end': [1, 0], 'lines': []},
+          \ ])
+
+    Expect getline(1, '$') ==# ['one', 'three']
+  end
+
+  it 'leaves a single empty line when an edit removes the whole buffer'
+    let document = SemBrDocumentTestSnapshot(['one', 'two', 'three'])
+    call sembr#document#Apply(document, [
+          \ {'start': [0, 0], 'end': [2, 0], 'lines': []},
+          \ ])
+
+    Expect getline(1, '$') ==# ['']
+  end
+
+  it 'does nothing for an empty plan'
+    let document = SemBrDocumentTestSnapshot(['one', 'two'])
+    call sembr#document#Apply(document, [])
+
+    Expect getline(1, '$') ==# ['one', 'two']
+  end
+
+  it 'rejects a plan if the buffer changed since the snapshot'
+    let document = SemBrDocumentTestSnapshot(['one', 'two', 'three'])
+    call setline(2, 'edited elsewhere')
+
+    Expect expr { sembr#document#Apply(document, [
+          \ {'start': [1, 0], 'end': [1, 0], 'lines': ['TWO']},
+          \ ]) }
+          \ to_throw 'sembr: the buffer has changed since the document was snapshotted'
+    Expect getline(1, '$') ==# ['one', 'edited elsewhere', 'three']
+  end
+end
