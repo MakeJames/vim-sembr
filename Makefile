@@ -7,16 +7,16 @@ VSPEC_VERSION ?= v1.9.2
 TESTIFY_DIR ?= .vim-testify
 TESTIFY_VERSION ?= v0.6.0
 
-.PHONY: all clean install-deps lint lint-test test unit-test
+.PHONY: all clean install-deps lint lint-test test unit-test verify-deps
 
 all: install-deps lint test
 
 clean:
 	rm -rf $(VSPEC_DIR) $(TESTIFY_DIR)
 	$(UV) run --group dev pyclean --yes --debris=all .
-	uv venv --clear
+	$(UV) venv --clear
 
-install-deps: $(VSPEC_DIR)/bin/prove-vspec $(TESTIFY_DIR)/plugin/testify.vim
+install-deps: verify-deps $(VSPEC_DIR)/bin/prove-vspec $(TESTIFY_DIR)/plugin/testify.vim
 	$(UV) sync --group dev
 
 test: $(VSPEC_DIR)/bin/prove-vspec unit-test lint-test
@@ -40,3 +40,10 @@ $(VSPEC_DIR)/bin/prove-vspec:
 $(TESTIFY_DIR)/plugin/testify.vim:
 	git clone --depth 1 --branch "$(TESTIFY_VERSION)" \
 		https://github.com/dhruvasagar/vim-testify.git "$(TESTIFY_DIR)"
+
+verify-deps:
+	@echo "Verifying dependencies..."
+	@$(VIM) --version > /dev/null 2>&1 || \
+		{ echo >&2 "Error: vim is not installed. Please install vim."; exit 1; }
+	@$(UV) --version > /dev/null 2>&1 || \
+		{ echo >&2 "Error: uv is not installed. Please install uv."; exit 1; }
