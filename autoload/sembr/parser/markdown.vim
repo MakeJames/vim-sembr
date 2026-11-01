@@ -1,4 +1,13 @@
 " Markdown reference adapter for SemBr
+"
+" Notable exclusions to be added later
+"   - tables
+"   - definition lists
+"   - footnotes
+"   - math blocks
+"   - admonitions
+"   - HTML blocks
+"   - YAML front matter
 
 function! s:fence_marker(line) abort
   return matchstr(a:line, '^ \{0,3}\zs\(```\+\|[~]\{3,}\)')
@@ -12,24 +21,6 @@ function! s:is_fence_close(line, fence) abort
         \ && l:marker[0] ==# a:fence[0]
         \ && strlen(l:marker) >= strlen(a:fence)
         \ && strpart(a:line, strlen(l:indent) + strlen(l:marker)) =~# '^\s*$'
-
-endfunction
-
-function! s:line_kind(line) abort
-  if a:line =~# '^\s*$'
-    return 'blank'
-  elseif !empty(s:fence_marker(a:line)) || a:line =~# '^\s\+'
-    return 'code_block'
-  elseif a:line =~# '^\s*\%([-*+]\|\d\+[.)]\)\s\+'
-    return 'list'
-  elseif a:line =~# '^#\+\%(\s\|$\)'
-    return 'heading'
-  endif
-
-  " All other lines treated as paragraphs.
-  " This is a major simplification of the Markdown spec,
-  " but it is sufficient for mapping out the internal structure of SemBr.
-  return 'paragraph'
 
 endfunction
 
