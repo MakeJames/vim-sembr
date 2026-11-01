@@ -1,11 +1,10 @@
 " Document functions for Sembr
 
-function! sembr#document#Snapshot(buffer, first_line, last_line) abort
+function! sembr#document#Document(buffer, first_line, last_line) abort
   " Create a snapshot of the current buffer.
   "
-  " Snapshot copies the entire document into memory,
-  " This preserves the state of the document
-  " and ensures that changes have full document context.
+  " Preserve the current state of the entire document.
+  " This ensures that changes have full document context.
   "
   " Parameters:
   "   buffer: the buffer number of the document to snapshot
@@ -36,6 +35,7 @@ function! sembr#document#Snapshot(buffer, first_line, last_line) abort
 
   return {
         \ 'buffer': a:buffer,
+        \ 'changedtick': getbufvar(a:buffer, 'changedtick'),
         \ 'filetype': getbufvar(a:buffer, '&filetype'),
         \ 'lines': l:lines,
         \ 'selection': {
@@ -44,3 +44,5 @@ function! sembr#document#Snapshot(buffer, first_line, last_line) abort
         \ },
         \ }
 endfunction
+
+

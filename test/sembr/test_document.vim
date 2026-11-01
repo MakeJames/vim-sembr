@@ -36,8 +36,9 @@ describe 'SemBr markdown document snapshots'
           \ ]
     call SemBrDocumentTestResetBuffer(lines)
 
-    Expect sembr#document#Snapshot(bufnr('%'), 1, len(lines)) ==# {
+    Expect sembr#document#Document(bufnr('%'), 1, len(lines)) ==# {
           \ 'buffer': bufnr('%'),
+          \ 'changedtick': getbufvar(bufnr('%'), 'changedtick'),
           \ 'filetype': 'markdown',
           \ 'lines': lines,
           \ 'selection': {'start': [0, 0], 'end': [len(lines) - 1, 0]},
@@ -53,7 +54,7 @@ describe 'SemBr markdown document snapshots'
 
     call SemBrDocumentTestResetBuffer(lines)
 
-    let snapshot = sembr#document#Snapshot(bufnr('%'), 2, 2)
+    let snapshot = sembr#document#Document(bufnr('%'), 2, 2)
 
     Expect snapshot.lines ==# lines
     Expect snapshot.selection ==# {'start': [1, 0], 'end': [1, 0]}
@@ -69,7 +70,7 @@ describe 'SemBr markdown document snapshots'
     call SemBrDocumentTestResetBuffer(lines)
     call SemBrDocumentTestResetBuffer(['Before.', '', 'After.'])
 
-    let snapshot = sembr#document#Snapshot(bufnr('%'), 2, 2)
+    let snapshot = sembr#document#Document(bufnr('%'), 2, 2)
 
     Expect snapshot.lines ==# lines
     Expect snapshot.selection ==# {'start': [1, 0], 'end': [1, 0]}
@@ -78,36 +79,37 @@ describe 'SemBr markdown document snapshots'
   it 'does not change after buffer edits'
     call SemBrDocumentTestResetBuffer(['Original line.'])
 
-    let snapshot = sembr#document#Snapshot(bufnr('%'), 1, 1)
+    let snapshot = sembr#document#Document(bufnr('%'), 1, 1)
     call setline(1, 'Modified line.')
 
     Expect snapshot.lines ==# ['Original line.']
+    Expect snapshot.changedtick != getbufvar(bufnr('%'), 'changedtick')
   end
 
   it 'rejects a first line before the buffer'
-    Expect expr { sembr#document#Snapshot(bufnr('%'), 0, 1) }
+    Expect expr { sembr#document#Document(bufnr('%'), 0, 1) }
           \ to_throw 'sembr: invalid line range'
   end
 
   it 'rejects a last line before the buffer'
-    Expect expr { sembr#document#Snapshot(bufnr('%'), 1, 0) }
+    Expect expr { sembr#document#Document(bufnr('%'), 1, 0) }
           \ to_throw 'sembr: invalid line range'
   end
 
   it 'rejects reversed ranges'
-    Expect expr { sembr#document#Snapshot(bufnr('%'), 2, 1) }
+    Expect expr { sembr#document#Document(bufnr('%'), 2, 1) }
           \ to_throw 'sembr: invalid line range'
   end
 
   it 'rejects a last line after the buffer'
-    Expect expr { sembr#document#Snapshot(bufnr('%'), 1, 2) }
+    Expect expr { sembr#document#Document(bufnr('%'), 1, 2) }
           \ to_throw 'sembr: invalid line range'
   end
 
   it 'rejects unloaded source buffers'
     let buffer = bufadd(tempname())
     try
-      Expect expr { sembr#document#Snapshot(buffer, 1, 1) }
+      Expect expr { sembr#document#Document(buffer, 1, 1) }
             \ to_throw 'sembr: the source buffer is not loaded'
     finally
       execute 'bwipeout!' buffer
@@ -138,8 +140,9 @@ describe 'SemBr python document snapshots'
           \ ]
     call SemBrDocumentTestResetBuffer(lines)
 
-    Expect sembr#document#Snapshot(bufnr('%'), 1, len(lines)) ==# {
+    Expect sembr#document#Document(bufnr('%'), 1, len(lines)) ==# {
           \ 'buffer': bufnr('%'),
+          \ 'changedtick': getbufvar(bufnr('%'), 'changedtick'),
           \ 'filetype': 'python',
           \ 'lines': lines,
           \ 'selection': {'start': [0, 0], 'end': [len(lines) - 1, 0]},
@@ -169,8 +172,9 @@ describe 'SemBr yaml document snapshots'
           \ ]
     call SemBrDocumentTestResetBuffer(lines)
 
-    Expect sembr#document#Snapshot(bufnr('%'), 1, len(lines)) ==# {
+    Expect sembr#document#Document(bufnr('%'), 1, len(lines)) ==# {
           \ 'buffer': bufnr('%'),
+          \ 'changedtick': getbufvar(bufnr('%'), 'changedtick'),
           \ 'filetype': 'yaml',
           \ 'lines': lines,
           \ 'selection': {'start': [0, 0], 'end': [len(lines) - 1, 0]},
