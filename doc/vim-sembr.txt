@@ -3,7 +3,7 @@
 Author: MakeJames
 License: MIT
 
-INTRODUCTION                          *SemBr*
+INTRODUCTION                           *SemBr*
 
 This plugin is a tool to bring SemBr to Vim.
 It is a work in progress,
@@ -24,15 +24,21 @@ This plugin provides a more nuanced approach to formatting text in Vim.
 - Re-join lines, that were previously broken, into a single line
 - Respect line indentation and whitespace for code blocks and lists
 - Convert whole buffers or selected text
-- Configure the maximum line with (default: 80 characters)
+- Keep semantic prose lines within a recommended 80-character width
 
-USAGE                                           *Sembr-usage*
 
-                                                        *:SemBr*
+USAGE                                  *Sembr-usage*
+
 :SemBr
         Apply SemBr formatting to the current buffer.
-        Currently, this splits sentences ending in '.', '!', or '?'
-        followed by whitespace.
+
+        For 'markdown' and 'text' buffers,
+        terminal punctuation ('.', '!', and '?') creates a semantic linebreak.
+        A secondary split is made on ',', ';', ':', or '—' characters
+        when the line exceeds 80 characters.
+
+        In Markdown buffers inline features are protected from linebreaks.
+        Other filetypes use sentence-only formatting.
 
 :<range>SemBr
         Apply SemBr formatting to <range>.

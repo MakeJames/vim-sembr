@@ -48,7 +48,7 @@ This plugin provides a more nuanced approach to formatting text in Vim.
 - Re-join lines, that were previously broken, into a single line
 - Respect line indentation and whitespace for code blocks and lists
 - Convert whole buffers or selected text
-- Configure the maximum line with (default: 80 characters)
+- Keep semantic prose lines within a recommended 80-character width
 
 ## Usage
 
@@ -58,6 +58,25 @@ or provide a range to format only part of it:
 ```vim
 :10,20SemBr
 ```
+
+For `markdown` and `text` buffers,
+SemBr always breaks after terminal punctuation (`.`, `!`, and `?`).
+A comma, semicolon, colon, or em dash creates a break
+when retaining the following clause would exceed the recommended
+80-character width.
+Short clauses remain together.
+
+Markdown inline links and images,
+autolinks,
+code spans,
+emphasis,
+strong emphasis,
+and HTML tags are protected from semantic breaks.
+Other filetypes retain sentence-only formatting.
+Lists,
+headings,
+indented code,
+and fenced code blocks are preserved.
 
 ## Installation
 
