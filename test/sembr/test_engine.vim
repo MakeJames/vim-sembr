@@ -1,11 +1,11 @@
 describe 'sembr#engine#Plan'
   it 'plans an edit for a paragraph node inside the selection'
     let tree = {
-          \ 'type': 'document',
+          \ 'kind': 'document',
           \ 'start': [0, 0],
           \ 'end': [0, 0],
           \ 'children': [{
-          \   'type': 'paragraph',
+          \   'kind': 'paragraph',
           \   'start': [0, 0],
           \   'end': [0, 0],
           \   'lines': ['One sentence. A second sentence!'],
@@ -23,18 +23,18 @@ describe 'sembr#engine#Plan'
 
   it 'plans no edit for a paragraph node outside the selection'
     let tree = {
-          \ 'type': 'document',
+          \ 'kind': 'document',
           \ 'start': [0, 0],
           \ 'end': [1, 0],
           \ 'children': [
           \   {
-          \     'type': 'paragraph',
+          \     'kind': 'paragraph',
           \     'start': [0, 0],
           \     'end': [0, 0],
           \     'lines': ['Outside. Sentence two!'],
           \   },
           \   {
-          \     'type': 'paragraph',
+          \     'kind': 'paragraph',
           \     'start': [1, 0],
           \     'end': [1, 0],
           \     'lines': ['Inside. Sentence two!'],
@@ -66,13 +66,13 @@ describe 'sembr#engine#Plan'
     Expect sembr#engine#Plan(tree, rules, selection) ==# []
   end
 
-  it 'plans no edit for a type missing from the rules'
+  it 'plans no edit for a kind missing from the rules'
     let tree = {
-          \ 'type': 'document',
+          \ 'kind': 'document',
           \ 'start': [0, 0],
           \ 'end': [0, 0],
           \ 'children': [{
-          \   'type': 'mystery',
+          \   'kind': 'mystery',
           \   'start': [0, 0],
           \   'end': [0, 0],
           \   'lines': ['untouched line'],
@@ -106,12 +106,12 @@ describe 'sembr#engine#Plan'
 
   it 'rejects overlapping edits from a buggy parser with overlapping siblings'
     let tree = {
-          \ 'type': 'document',
+          \ 'kind': 'document',
           \ 'start': [0, 0],
           \ 'end': [0, 0],
           \ 'children': [
-          \   {'type': 'paragraph', 'start': [0, 0], 'end': [0, 0], 'lines': ['One. Two!']},
-          \   {'type': 'paragraph', 'start': [0, 0], 'end': [0, 0], 'lines': ['One. Two!']},
+          \   {'kind': 'paragraph', 'start': [0, 0], 'end': [0, 0], 'lines': ['One. Two!']},
+          \   {'kind': 'paragraph', 'start': [0, 0], 'end': [0, 0], 'lines': ['One. Two!']},
           \ ],
           \ }
     let rules = sembr#parser#markdown#Rules()
@@ -125,12 +125,12 @@ describe 'sembr#engine#Plan'
     " A two-line paragraph node ending on line 1, immediately followed by a
     " sibling node that (incorrectly) starts on that same line 1.
     let tree = {
-          \ 'type': 'document',
+          \ 'kind': 'document',
           \ 'start': [0, 0],
           \ 'end': [1, 0],
           \ 'children': [
-          \   {'type': 'paragraph', 'start': [0, 0], 'end': [1, 0], 'lines': ['One.', 'Two!']},
-          \   {'type': 'paragraph', 'start': [1, 0], 'end': [1, 0], 'lines': ['Two!']},
+          \   {'kind': 'paragraph', 'start': [0, 0], 'end': [1, 0], 'lines': ['One.', 'Two!']},
+          \   {'kind': 'paragraph', 'start': [1, 0], 'end': [1, 0], 'lines': ['Two!']},
           \ ],
           \ }
     let rules = sembr#parser#markdown#Rules()
@@ -142,12 +142,12 @@ describe 'sembr#engine#Plan'
 
   it 'does not throw for edits on immediately adjacent, non-overlapping lines'
     let tree = {
-          \ 'type': 'document',
+          \ 'kind': 'document',
           \ 'start': [0, 0],
           \ 'end': [1, 0],
           \ 'children': [
-          \   {'type': 'paragraph', 'start': [0, 0], 'end': [0, 0], 'lines': ['One. Two!']},
-          \   {'type': 'paragraph', 'start': [1, 0], 'end': [1, 0], 'lines': ['Three. Four!']},
+          \   {'kind': 'paragraph', 'start': [0, 0], 'end': [0, 0], 'lines': ['One. Two!']},
+          \   {'kind': 'paragraph', 'start': [1, 0], 'end': [1, 0], 'lines': ['Three. Four!']},
           \ ],
           \ }
     let rules = sembr#parser#markdown#Rules()

@@ -1,7 +1,7 @@
 " Traverse the document tree.
 "
 " Each node is a dict with:
-"   type: string, the node kind (eg: 'paragraph', 'list', 'code_block')
+"   kind: string, the node kind (eg: 'paragraph', 'list', 'code_block')
 "   start: [line, col], 0-indexed inclusive start position
 "   end: [line, col], 0-indexed inclusive end position
 "   lines: list of strings (leaf nodes), or

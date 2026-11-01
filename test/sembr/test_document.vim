@@ -187,6 +187,34 @@ function! SemBrDocumentTestSnapshot(lines) abort
   return sembr#document#Document(bufnr('%'), 1, max([len(a:lines), 1]))
 endfunction
 
+describe 'sembr#document#Plan'
+  before
+    enew!
+  end
+
+  after
+    bwipeout!
+  end
+
+  it 'plans markdown edits via the markdown parser'
+    setlocal filetype=markdown
+    let document = SemBrDocumentTestSnapshot(['One sentence. A second sentence!'])
+
+    Expect sembr#document#Plan(document) ==# [{
+          \ 'start': [0, 0],
+          \ 'end': [0, 0],
+          \ 'lines': ['One sentence.', 'A second sentence!'],
+          \ }]
+  end
+
+  it 'plans no edits for an unsupported filetype'
+    setlocal filetype=python
+    let document = SemBrDocumentTestSnapshot(['One sentence. A second sentence!'])
+
+    Expect sembr#document#Plan(document) ==# []
+  end
+end
+
 describe 'sembr#document#Apply'
   before
     enew!

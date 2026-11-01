@@ -46,6 +46,22 @@ function! sembr#document#Document(buffer, first_line, last_line) abort
         \ }
 endfunction
 
+function! sembr#document#Plan(document) abort
+  " Plan the edits SemBr would make to a document snapshot.
+  "
+  " Selects the parser for the document's filetype (see sembr#parser#For),
+  " parses the document into a tree, and hands the tree and the parser's
+  " rules to sembr#engine#Plan to compute the edits.
+  "
+  " Parameters:
+  "   document: a snapshot from sembr#document#Document
+  "
+  " Returns:
+  "   a list of edits (see sembr#engine#Plan)
+  let l:parser = sembr#parser#For(a:document.filetype)
+  return sembr#engine#Plan(
+        \ l:parser.Parse(a:document), l:parser.Rules(), a:document.selection)
+endfunction
 
 function! sembr#document#Apply(document, plan) abort
   " Apply a plan of edits to the buffer.

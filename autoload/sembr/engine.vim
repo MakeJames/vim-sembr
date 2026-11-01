@@ -9,7 +9,7 @@ function! s:split_sentences(lines) abort
 endfunction
 
 function! s:visit_impl(node, in_selection) dict abort
-  let l:rule = get(l:self.rules, a:node.type, {'action': 'preserve'})
+  let l:rule = get(l:self.rules, a:node.kind, {'action': 'preserve'})
 
   if l:rule.action ==# 'descend'
     let l:edits = []
@@ -29,9 +29,6 @@ function! s:visit_impl(node, in_selection) dict abort
           \ }]
   endif
 
-  " If the node is not in the edit range
-  " or the rule is 'preserve' or missing,
-  " do not edit it
   return []
 
 endfunction
@@ -41,7 +38,7 @@ function! sembr#engine#Plan(tree, rules, selection) abort
   "   - 'descend': recurse into the node's children
   "   - 'format': re-split the node's lines into sentences, but only when the
   "               node overlaps the selection
-  "   - anything else (eg: 'preserve', or a type missing from rules): no edit
+  "   - anything else (eg: 'preserve', or an action missing): no edit
   "
   " Returns:
   "   list of edits ({start, end, lines}) for changed nodes, sorted ascending
