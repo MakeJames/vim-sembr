@@ -1,28 +1,18 @@
 " Higher level data structures for SemBr
 
 
-function! s:is_flag(value) abort
-  " Check if a value is a valid flag (0 or 1).
-  "
-  " Parameters:
-  "   value: the value to check
-  " Returns:
-  "   1 if the value is a valid flag, 0 otherwise
-
-  return type(a:value) == type(0)
-    \ && (a:value == 0 || a:value == 1)
+function! s:assert_flag(value) abort
+  let l:is_int = type(a:value) == type(0)
+  let l:is_flag = (a:value == 0 || a:value == 1)
+  if !l:is_int || !l:is_flag
+    throw 'sembr: invalid flag value: ' . string(a:value) . ', must be 0 or 1.'
+  endif
 endfunction
 
-function! s:assert_flag(value) abort
-  " Assert that a value is a valid flag (0 or 1).
-  "
-  " Parameters:
-  "   value: the value to check
-  " Raises:
-  "   An error if the value is not a valid flag
 
-  if !s:is_flag(a:value)
-    throw 'sembr: invalid flag value: ' . string(a:value) . ', must be 0 or 1.'
+function! s:assert_string(value) abort
+  if type(a:value) != type('')
+    throw 'sembr: invalid string value: ' . string(a:value) . ', must be a string.'
   endif
 endfunction
 
@@ -61,11 +51,13 @@ function! sembr#models#Node(opt) abort
         \ 'safe': get(a:opt, 'safe', l:defaults.safe),
         \ }
 
+  " Validate the 'kind' field
+  call s:assert_string(l:node.kind)
+
   " Validate the 'safe' flag
   call s:assert_flag(l:node.safe)
 
   " TODO: add further validation for other fields:
-  "  - kind should be a string
   "  - start and end should be
   "     - lists of two integers
   "     - start <= end
