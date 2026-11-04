@@ -506,33 +506,33 @@ function! s:list_node(start_line, lines) abort
   let l:children = []
   for l:offset in range(len(a:lines))
     let l:line = a:start_line + l:offset
-    call add(l:children, {
+    call add(l:children, sembr#models#Node({
           \ 'kind': 'list_item',
           \ 'start': [l:line, 0],
           \ 'end': [l:line, 0],
           \ 'lines': [a:lines[l:offset]],
           \ 'safe': 0,
-          \ })
+          \ }))
   endfor
 
-  return {
+  return sembr#models#Node({
         \ 'kind': 'list',
         \ 'start': [a:start_line, 0],
         \ 'end': [a:start_line + len(a:lines) - 1, 0],
         \ 'children': l:children,
         \ 'safe': 0,
-        \ }
+        \ })
 
 endfunction
 
 function! s:leaf_node(kind, start_line, lines, safe) abort
-  return {
+  return sembr#models#Node({
         \ 'kind': a:kind,
         \ 'start': [a:start_line, 0],
         \ 'end': [a:start_line + len(a:lines) - 1, 0],
         \ 'lines': a:lines,
         \ 'safe': a:safe,
-        \ }
+        \ })
 
 endfunction
 
@@ -625,13 +625,13 @@ function! sembr#parser#markdown#Parse(document) abort
           \                         || s:paragraph_is_safe(l:buffer))))
   endif
 
-  return {
+  return sembr#models#Node({
         \ 'kind': 'document',
         \ 'start': [0, 0],
         \ 'end': [max([len(a:document.lines) - 1, 0]), 0],
         \ 'children': l:children,
         \ 'safe': 0,
-        \ }
+        \ })
 
 endfunction
 
