@@ -10,6 +10,23 @@ function! s:assert_flag(value) abort
 endfunction
 
 
+function! s:assert_list(value, list_type) abort
+  if type(a:value) != type([])
+    throw 'sembr: invalid list value: ' . string(a:value) . ', must be a list.'
+  endif
+
+  echo a:value
+
+  for l:item in a:value
+    if type(l:item) != type(a:list_type)
+      throw 'sembr: invalid list value: '
+        \ . string(l:item) . ', must be a ' . string(a:list_type) . '.'
+    endif
+  endfor
+
+endfunction
+
+
 function! s:assert_string(value) abort
   if type(a:value) != type('')
     throw 'sembr: invalid string value: ' . string(a:value) . ', must be a string.'
@@ -53,6 +70,9 @@ function! sembr#models#Node(opt) abort
 
   " Validate the 'kind' field
   call s:assert_string(l:node.kind)
+
+  " Validate lines field
+  call s:assert_list(l:node.lines, 'string')
 
   " Validate the 'safe' flag
   call s:assert_flag(l:node.safe)

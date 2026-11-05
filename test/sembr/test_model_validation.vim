@@ -68,6 +68,69 @@ describe 'Node Model Validation: kind'
 
 end
 
+describe 'Node Model Validation: lines'
+
+  it 'should thow an error when lines is a number'
+    let case = {'lines': 1}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid list value: 1, must be a list.'
+  end
+
+  it 'should thow an error when lines is a string'
+    let case = {'lines': 'string'}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid list value: ''string'', must be a list.'
+  end
+
+  it 'should throw an error when lines is a list of non-string values'
+    let case = {'lines': [1, 2, 3]}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid list value: 1, must be a ''string''.'
+  end
+
+  it 'should allow a list of length 0'
+    let case = {'lines': []}
+
+    Expect sembr#models#Node(case) ==# {
+        \ 'kind': '',
+        \ 'start': [0, 0],
+        \ 'end': [0, 0],
+        \ 'children': [],
+        \ 'lines': [],
+        \ 'safe': 0,
+        \ }
+  end
+
+  it 'should allow a list of length 1'
+    let case = {'lines': ['line']}
+
+    Expect sembr#models#Node(case) ==# {
+        \ 'kind': '',
+        \ 'start': [0, 0],
+        \ 'end': [0, 0],
+        \ 'children': [],
+        \ 'lines': ['line'],
+        \ 'safe': 0,
+        \ }
+  end
+
+  it 'boundary case: what happens when lines contains a nested list?'
+    let case = {'lines': ['| Name | Value |']}
+
+    Expect sembr#models#Node(case) ==# {
+        \ 'kind': '',
+        \ 'start': [0, 0],
+        \ 'end': [0, 0],
+        \ 'children': [],
+        \ 'lines': ['| Name | Value |'],
+        \ 'safe': 0,
+        \ }
+    end
+end
+
 describe 'Node Model Validation: safe flag'
 
   it 'should thow an error when safe is 2'
