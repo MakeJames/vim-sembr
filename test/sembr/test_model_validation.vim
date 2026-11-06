@@ -117,18 +117,12 @@ describe 'Node Model Validation: lines'
         \ }
   end
 
-  it 'boundary case: what happens when lines contains a nested list?'
-    let case = {'lines': ['| Name | Value |']}
+  it 'should throw an error when list is a nested list.'
+    let case = {'lines': [['line']]}
 
-    Expect sembr#models#Node(case) ==# {
-        \ 'kind': '',
-        \ 'start': [0, 0],
-        \ 'end': [0, 0],
-        \ 'children': [],
-        \ 'lines': ['| Name | Value |'],
-        \ 'safe': 0,
-        \ }
-    end
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid list value: \[''line''\], must be a ''string''.'
+  end
 end
 
 describe 'Node Model Validation: safe flag'

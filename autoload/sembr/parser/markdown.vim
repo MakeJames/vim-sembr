@@ -415,7 +415,7 @@ function! s:preserved_block(line) abort
     return {
           \ 'matched': 0,
           \ 'kind': 'preserved',
-          \ 'lines': [a:line],
+          \ 'lines': a:line,
           \ 'complete': 0,
           \ 'safe': 0,
           \ }
