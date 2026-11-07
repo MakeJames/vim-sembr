@@ -25,29 +25,29 @@ function! s:is_fence_close(line, fence) abort
 endfunction
 
 function! s:unmatched_object() abort
-  return {
-        \ 'matched': 0,
-        \ 'kind': '',
-        \ 'lines': [],
-        \ 'complete': 0,
-        \ 'safe': 0,
-        \ }
+    return sembr#models#Match({})
 
 endfunction
 
 function! s:matched_object(kind, lines, complete, ...) abort
-  return {
+  return sembr#models#Match({
         \ 'matched': 1,
         \ 'kind': a:kind,
         \ 'lines': a:lines,
         \ 'complete': a:complete,
         \ 'safe': a:0 ? a:1 : 0,
-        \ }
+        \ })
 
 endfunction
 
 function! s:unrecognised_block(lines, start_index) abort
-  return s:matched_object('preserved', a:lines[a:start_index :], 1, 0)
+  return sembr#models#Match({
+        \ 'matched': 1,
+        \ 'kind': 'preserved',
+        \ 'lines': a:lines[a:start_index :],
+        \ 'complete': 1,
+        \ 'safe': 0,
+        \ })
 
 endfunction
 
@@ -161,7 +161,7 @@ endfunction
 
 function! s:parse_indented_code_block(line, _, _a, _b) abort
   if a:line =~# '^\s\+'
-    return s:matched_object('code_block', a:line, 0)
+    return s:matched_object('code_block', [a:line], 0)
   endif
 
   return s:unmatched_object()
@@ -360,14 +360,14 @@ function! s:parse_paragraph(line, _, _a, previous_line_kind) abort
   "
   " The first character needs to be a non-whitespace A-Z or a-z character.
   if a:line =~# '^\s*[A-Za-z]'
-    return s:matched_object('paragraph', a:line, 0, 1)
+    return s:matched_object('paragraph', [a:line], 0, 1)
   endif
 
   " Allow for paragraphs that are continued from the previous line.
   " Lists should have a blank line between them and the paragraph.
   " images and lines, may be continued without a blank line.
   if a:previous_line_kind ==# 'paragraph' && a:line =~# '^\s*\S'
-    return s:matched_object('paragraph', a:line, 0, 1)
+    return s:matched_object('paragraph', [a:line], 0, 1)
   endif
 
   return s:unmatched_object()
@@ -377,12 +377,12 @@ endfunction
 function! s:parse_list(line, _, _a, previous_line_kind) abort
   " Parse a list starting at the current line.
   if a:line =~# '^\s*\%([-*+]\|\d\+[.)]\)\%(\s\|$\)'
-    return s:matched_object('list', a:line, 0)
+    return s:matched_object('list', [a:line], 0)
   endif
 
   " Allow for lists that are continued from the previous line.
   if a:previous_line_kind ==# 'list' && a:line =~# '^\s*\S'
-    return s:matched_object('list', a:line, 0)
+    return s:matched_object('list', [a:line], 0)
   endif
 
   return s:unmatched_object()
@@ -392,7 +392,7 @@ endfunction
 function! s:parse_blockquote(line, _, _a, _b) abort
   " Parse a blockquote starting at the current line.
   if a:line =~# '^\s*>'
-    return s:matched_object('blockquote', a:line, 0)
+    return s:matched_object('blockquote', [a:line], 0)
   endif
 
   return s:unmatched_object()
@@ -412,13 +412,13 @@ endfunction
 
 function! s:preserved_block(line) abort
     " Return a match object for a line that should be preserved.
-    return {
+    return sembr#models#Match({
           \ 'matched': 0,
           \ 'kind': 'preserved',
           \ 'lines': [a:line],
           \ 'complete': 0,
           \ 'safe': 0,
-          \ }
+          \ })
 
 endfunction
 
@@ -506,33 +506,33 @@ function! s:list_node(start_line, lines) abort
   let l:children = []
   for l:offset in range(len(a:lines))
     let l:line = a:start_line + l:offset
-    call add(l:children, {
+    call add(l:children, sembr#models#Node({
           \ 'kind': 'list_item',
           \ 'start': [l:line, 0],
           \ 'end': [l:line, 0],
           \ 'lines': [a:lines[l:offset]],
           \ 'safe': 0,
-          \ })
+          \ }))
   endfor
 
-  return {
+  return sembr#models#Node({
         \ 'kind': 'list',
         \ 'start': [a:start_line, 0],
         \ 'end': [a:start_line + len(a:lines) - 1, 0],
         \ 'children': l:children,
         \ 'safe': 0,
-        \ }
+        \ })
 
 endfunction
 
 function! s:leaf_node(kind, start_line, lines, safe) abort
-  return {
+  return sembr#models#Node({
         \ 'kind': a:kind,
         \ 'start': [a:start_line, 0],
         \ 'end': [a:start_line + len(a:lines) - 1, 0],
         \ 'lines': a:lines,
         \ 'safe': a:safe,
-        \ }
+        \ })
 
 endfunction
 
@@ -608,7 +608,7 @@ function! sembr#parser#markdown#Parse(document) abort
     endif
 
     let l:kind = l:match.kind
-    call add(l:buffer, l:match.lines)
+    call extend(l:buffer, l:match.lines)
     let l:safe = l:safe && l:match.safe
 
     let l:index += 1
@@ -625,13 +625,13 @@ function! sembr#parser#markdown#Parse(document) abort
           \                         || s:paragraph_is_safe(l:buffer))))
   endif
 
-  return {
+  return sembr#models#Node({
         \ 'kind': 'document',
         \ 'start': [0, 0],
         \ 'end': [max([len(a:document.lines) - 1, 0]), 0],
         \ 'children': l:children,
         \ 'safe': 0,
-        \ }
+        \ })
 
 endfunction
 
