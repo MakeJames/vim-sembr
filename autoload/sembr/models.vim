@@ -35,6 +35,49 @@ function! s:assert_string(value) abort
 endfunction
 
 
+function! sembr#models#Match(opt) abort
+  " A Match object is an internal object for a matched pattern.
+  "
+  " Parameters:
+  "  opt: dictionary of options to set on the match
+  "
+  " Returns:
+  " A dictionary representing the match with the following keys:
+  "
+  "   matched: int - 0 or 1 indicating if the pattern was matched (default: 0)
+  "   kind: string representing the type of match (default: '')
+  "   lines: list of strings in the match (default: [])
+  "   complete: int - 0 or 1 indicating if the match is complete (default: 0)
+  "   safe: int - 0 or 1 indicating if the match is safe (default: 0)
+
+  let l:defaults = {
+        \ 'matched': 0,
+        \ 'kind': '',
+        \ 'lines': [],
+        \ 'complete': 0,
+        \ 'safe': 0,
+        \ }
+
+  let l:match = {
+        \ 'matched': get(a:opt, 'matched', l:defaults.matched),
+        \ 'kind': get(a:opt, 'kind', l:defaults.kind),
+        \ 'lines': get(a:opt, 'lines', l:defaults.lines),
+        \ 'complete': get(a:opt, 'complete', l:defaults.complete),
+        \ 'safe': get(a:opt, 'safe', l:defaults.safe),
+        \ }
+
+  call s:assert_flag(l:match.matched)
+  call s:assert_flag(l:match.safe)
+  call s:assert_flag(l:match.complete)
+
+  call s:assert_string(l:match.kind)
+  call s:assert_list(l:match.lines, 'string')
+
+  return l:match
+
+endfunction
+
+
 function! sembr#models#Node(opt) abort
   " A node is a generic element of the document.
   "
