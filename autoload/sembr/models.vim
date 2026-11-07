@@ -15,8 +15,6 @@ function! s:assert_list(value, list_type) abort
     throw 'sembr: invalid list value: ' . string(a:value) . ', must be a list.'
   endif
 
-  echo a:value
-
   for l:item in a:value
     if type(l:item) != type(a:list_type)
       throw 'sembr: invalid list value: '
