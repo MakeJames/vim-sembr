@@ -29,7 +29,8 @@ endfunction
 
 function! s:assert_string(value) abort
   if type(a:value) != type('')
-    throw 'sembr: invalid string value: ' . string(a:value) . ', must be a string.'
+    throw 'sembr: invalid string value: '
+        \ . string(a:value) . ', must be a string.'
   endif
 endfunction
 
