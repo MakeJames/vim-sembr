@@ -121,13 +121,16 @@ function! sembr#models#Node(opt) abort
   " Validate the 'safe' flag
   call s:assert_flag(l:node.safe)
 
-  " TODO: add further validation for other fields:
-  "  - start and end should be
-  "     - lists of two integers
-  "     - start <= end
-  "     - not be negative
-  "  - children should be a list of nodes or empty.
-  "  - lines should be a list of strings or empty.
+  call s:assert_list(l:node.start, 0)
+  call s:assert_list(l:node.end, 0)
+
+  if len(l:node.start) != 2 || len(l:node.end) != 2
+    throw 'sembr: invalid start or end value: '
+        \ . string(l:node.start) . ', ' . string(l:node.end)
+        \ . ', must be lists of two integers.'
+  endif
+
+  call s:assert_list(l:node.children, {})
 
   return l:node
 
