@@ -92,6 +92,27 @@ function! s:assert_start_and_end(start_value, end_value) abort
 endfunction
 
 
+function! s:assert_valid_node_children(value, kind) abort
+    if type(a:value) != type([])
+        throw 'sembr: invalid children value: '
+            \ . string(a:value) . ', '
+            \ . string(a:kind) .
+            \ ' must be a list.'
+    endif
+
+    for l:item in a:value
+        if type(l:item) != type({})
+            throw 'sembr: invalid child node value: '
+                \ . string(l:item) . ', '
+                \ . string(a:kind) .
+                \ ' must be a dictionary.'
+        endif
+        call sembr#models#Node(l:item)
+    endfor
+
+endfunction
+
+
 function! sembr#models#Match(opt) abort
   " A Match object is an internal object for a matched pattern.
   "
@@ -169,14 +190,13 @@ function! sembr#models#Node(opt) abort
         \ 'safe': get(a:opt, 'safe', l:defaults.safe),
         \ }
 
-  " Validate the 'kind' field
   call s:assert_string(l:node.kind)
 
-  " Validate lines field
   call s:assert_list(l:node.lines, 'string')
 
-  " Validate the 'safe' flag
   call s:assert_flag(l:node.safe)
+
+  call s:assert_valid_node_children(l:node.children, "sembr#models#Node")
 
   call s:assert_start_and_end(l:node.start, l:node.end)
 

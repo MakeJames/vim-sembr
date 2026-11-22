@@ -253,6 +253,66 @@ describe 'Node Model Validation: safe flag'
 
 end
 
+describe 'Node Model Validation: children'
+    it 'should pass wehn a child is a valid node'
+        let case = {'children': [sembr#models#Node({'kind': 'child'})]}
+        let expected = {
+            \ 'kind': '',
+            \ 'start': [0, 0],
+            \ 'end': [0, 0],
+            \ 'children': [{'kind': 'child', 'start': [0, 0], 'end': [0, 0], 'children': [], 'lines': [], 'safe': 0}],
+            \ 'lines': [],
+            \ 'safe': 0,
+            \ }
+
+        Expect sembr#models#Node(case) ==# expected
+    end
+
+    it 'should throw an error when children is not a list'
+        let case = {'children': 1}
+
+        Expect expr { sembr#models#Node(case) }
+            \ to_throw 'sembr: invalid children value: 1, ''sembr#models#Node'' must be a list.'
+    end
+
+    it 'should throw an error when a child is not a valid node'
+        let case = {'children': ['string']}
+
+        Expect expr { sembr#models#Node(case) }
+            \ to_throw 'sembr: invalid child node value: ''string'', ''sembr#models#Node'' must be a dictionary.'
+    end
+
+    it 'should not alter valid partial nodes into complete child nodes'
+        let case = {
+                    \ 'children': [
+                    \   {
+                    \     'kind': 'child',
+                    \     'start': [1, 1],
+                    \     'end': [1, 2],
+                    \     'lines': ['line'],
+                    \     'safe': 1
+                    \   }
+                    \ ]}
+        let expected = {
+            \ 'kind': '',
+            \ 'start': [0, 0],
+            \ 'end': [0, 0],
+            \ 'children': [
+            \   {
+            \     'kind': 'child',
+            \     'start': [1, 1],
+            \     'end': [1, 2],
+            \     'children': [],
+            \     'lines': ['line'],
+            \     'safe': 1
+            \   }],
+            \ 'lines': [],
+            \ 'safe': 0,
+            \ }
+
+        Expect sembr#models#Node(case) !=# expected
+end
+
 describe 'Match Model Validation: matched flag'
 
   it 'should thow an error when matched is 2'
@@ -284,6 +344,7 @@ describe 'Match Model Validation: matched flag'
   end
 
 end
+
 describe 'Match Model Validation: kind'
 
   it 'should accept an empty string for kind'
