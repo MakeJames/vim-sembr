@@ -69,6 +69,28 @@ function! s:assert_line_and_column(value, field_name) abort
   endfor
 endfunction
 
+function! s:assert_start_and_end(start_value, end_value) abort
+    call s:assert_line_and_column(a:start_value, 'start')
+    call s:assert_line_and_column(a:end_value, 'end')
+
+    if len(a:start_value) != 2 || len(a:end_value) != 2
+        throw 'sembr: invalid start or end value: '
+            \ . string(a:start_value) . ', ' . string(a:end_value)
+            \ . ', must be lists of two integers.'
+    endif
+
+    if a:start_value[0] > a:end_value[0]
+        throw 'sembr: invalid start and end values: '
+            \ . string(a:start_value) . ', ' . string(a:end_value)
+            \ . ', start line must be less than or equal to end line.'
+    endif
+    if a:start_value[0] == a:end_value[0] && a:start_value[1] > a:end_value[1]
+        throw 'sembr: invalid start and end values: '
+            \ . string(a:start_value) . ', ' . string(a:end_value)
+            \ . ', start column must be less than or equal to end column.'
+    endif
+endfunction
+
 
 function! sembr#models#Match(opt) abort
   " A Match object is an internal object for a matched pattern.
@@ -156,14 +178,7 @@ function! sembr#models#Node(opt) abort
   " Validate the 'safe' flag
   call s:assert_flag(l:node.safe)
 
-  call s:assert_line_and_column(l:node.start, 'start')
-  call s:assert_line_and_column(l:node.end, 'end')
-
-  if len(l:node.start) != 2 || len(l:node.end) != 2
-    throw 'sembr: invalid start or end value: '
-        \ . string(l:node.start) . ', ' . string(l:node.end)
-        \ . ', must be lists of two integers.'
-  endif
+  call s:assert_start_and_end(l:node.start, l:node.end)
 
   call s:assert_list(l:node.children, {})
 

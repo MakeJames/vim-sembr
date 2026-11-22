@@ -176,6 +176,21 @@ describe 'Node Model Validation: start and end'
     Expect expr { sembr#models#Node(case) }
         \ to_throw 'sembr: invalid integer value: -1, ''end'' must be a non-negative integer.'
   end
+
+  it 'should throw an error when the end line is before the start line'
+    let case = {'start': [2, 0], 'end': [1, 0]}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid start and end values: \[2, 0\], \[1, 0\], start line must be less than or equal to end line.'
+  end
+
+  it 'should throw an error when the column of the end is before the column of the start on the same line'
+    let case = {'start': [1, 2], 'end': [1, 1]}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid start and end values: \[1, 2\], \[1, 1\], start column must be less than or equal to end column.'
+  end
+
 end
 
 describe 'Node Model Validation: safe flag'
