@@ -310,7 +310,43 @@ describe 'Node Model Validation: children'
             \ 'safe': 0,
             \ }
 
-        Expect sembr#models#Node(case) !=# expected
+        Expect sembr#models#Node(case) ==# expected
+
+    end
+
+    it 'should drop additional node fields'
+        let case = {
+                  \ 'children': [
+                  \   {
+                  \     'kind': 'child',
+                  \     'start': [1, 0],
+                  \     'end': [1, 1],
+                  \     'extra': 'field',
+                  \     'lines': [],
+                  \     'safe': 0
+                  \   }
+                  \ ]}
+        let expected = {
+            \ 'kind': '',
+            \ 'start': [0, 0],
+            \ 'end': [0, 0],
+            \ 'children': [
+            \   {
+            \     'kind': 'child',
+            \     'start': [1, 0],
+            \     'end': [1, 1],
+            \     'children': [],
+            \     'lines': [],
+            \     'safe': 0
+            \   }],
+            \ 'lines': [],
+            \ 'safe': 0,
+            \ }
+
+        Expect sembr#models#Node(case) ==# expected
+
+    end
+
 end
 
 describe 'Match Model Validation: matched flag'

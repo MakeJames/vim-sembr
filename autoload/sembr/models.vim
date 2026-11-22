@@ -92,7 +92,9 @@ function! s:assert_start_and_end(start_value, end_value) abort
 endfunction
 
 
-function! s:assert_valid_node_children(value, kind) abort
+function! s:validate_node_children(value, kind) abort
+    let l:valid_children = []
+
     if type(a:value) != type([])
         throw 'sembr: invalid children value: '
             \ . string(a:value) . ', '
@@ -107,8 +109,11 @@ function! s:assert_valid_node_children(value, kind) abort
                 \ . string(a:kind) .
                 \ ' must be a dictionary.'
         endif
-        call sembr#models#Node(l:item)
+        let l:valid_child = sembr#models#Node(l:item)
+        call add(l:valid_children, l:valid_child)
     endfor
+
+    return l:valid_children
 
 endfunction
 
@@ -196,7 +201,9 @@ function! sembr#models#Node(opt) abort
 
   call s:assert_flag(l:node.safe)
 
-  call s:assert_valid_node_children(l:node.children, 'sembr#models#Node')
+  let l:node.children = s:validate_node_children(
+              \ l:node.children,
+              \ 'sembr#models#Node')
 
   call s:assert_start_and_end(l:node.start, l:node.end)
 
