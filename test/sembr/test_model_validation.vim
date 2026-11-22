@@ -251,6 +251,20 @@ describe 'Node Model Validation: safe flag'
     Expect sembr#models#Node(case) ==# expected
   end
 
+  it 'should error when safe is a list'
+    let case = {'safe': []}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid flag value: [], must be 0 or 1.'
+  end
+
+  it 'should error when safe is a list with strings'
+    let case = {'safe': ['this', 'is', 'safe']}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid flag value: \[''this'', ''is'', ''safe''\], must be 0 or 1.'
+  end
+
 end
 
 describe 'Node Model Validation: children'

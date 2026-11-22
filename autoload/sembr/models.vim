@@ -2,10 +2,14 @@
 
 
 function! s:assert_flag(value) abort
-  let l:is_int = type(a:value) == type(0)
-  let l:is_flag = (a:value == 0 || a:value == 1)
-  if !l:is_int || !l:is_flag
-    throw 'sembr: invalid flag value: ' . string(a:value) . ', must be 0 or 1.'
+  if type(a:value) != type(0)
+    throw 'sembr: invalid flag value: '
+        \ . string(a:value) . ', must be 0 or 1.'
+  endif
+
+  if a:value != 0 && a:value != 1
+    throw 'sembr: invalid flag value: '
+        \ . string(a:value) . ', must be 0 or 1.'
   endif
 endfunction
 
