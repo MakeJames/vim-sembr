@@ -33,21 +33,22 @@ describe 'sembr#parser#markdown#Parse'
           \ ])
     let tree = sembr#parser#markdown#Parse(document)
 
-    Expect tree ==# {
+    Expect tree ==# sembr#models#Node({
           \ 'kind': 'document',
           \ 'start': [0, 0],
           \ 'end': [0, 0],
           \ 'children': [
-          \   {
+          \   sembr#models#Node({
           \     'kind': 'paragraph',
           \     'start': [0, 0],
           \     'end': [0, 0],
           \     'lines': ['One sentence. A second sentence! Is this the third?'],
           \     'safe': 1,
-          \   },
+          \   }),
           \ ],
           \ 'safe': 0,
-          \ }
+          \ })
+    Expect tree.lines ==# []
   end
 
   it 'marks paragraphs unsafe when formatting would change Markdown structure'
@@ -69,28 +70,30 @@ describe 'sembr#parser#markdown#Parse'
           \ ])
     let tree = sembr#parser#markdown#Parse(document)
 
-    Expect tree.children ==# [{
-          \ 'kind': 'list',
-          \ 'start': [0, 0],
-          \ 'end': [1, 0],
-          \ 'children': [
-          \   {
-          \     'kind': 'list_item',
-          \     'start': [0, 0],
-          \     'end': [0, 0],
-          \     'lines': ['- first unpunctuated item'],
-          \     'safe': 0,
-          \   },
-          \   {
-          \     'kind': 'list_item',
-          \     'start': [1, 0],
-          \     'end': [1, 0],
-          \     'lines': ['- second unpunctuated item'],
-          \     'safe': 0,
-          \   },
-          \ ],
-          \ 'safe': 0,
-          \ }]
+    Expect tree.children ==# [
+          \ sembr#models#Node({
+          \   'kind': 'list',
+          \   'start': [0, 0],
+          \   'end': [1, 0],
+          \   'children': [
+          \     sembr#models#Node({
+          \       'kind': 'list_item',
+          \       'start': [0, 0],
+          \       'end': [0, 0],
+          \       'lines': ['- first unpunctuated item'],
+          \       'safe': 0,
+          \     }),
+          \     sembr#models#Node({
+          \       'kind': 'list_item',
+          \       'start': [1, 0],
+          \       'end': [1, 0],
+          \       'lines': ['- second unpunctuated item'],
+          \       'safe': 0,
+          \     }),
+          \   ],
+          \   'safe': 0,
+          \ }),
+          \ ]
   end
 
   it 'groups paragraph, list, and code runs into separate nodes'
@@ -231,7 +234,7 @@ describe 'sembr#parser#markdown#Parse'
           \ ])
     let tree = sembr#parser#markdown#Parse(document)
 
-    Expect tree.children ==# [{
+    Expect tree.children ==# [sembr#models#Node({
           \ 'kind': 'preserved',
           \ 'start': [0, 0],
           \ 'end': [2, 0],
@@ -241,7 +244,7 @@ describe 'sembr#parser#markdown#Parse'
           \   'Prose sentence. Another sentence!',
           \ ],
           \   'safe': 0,
-          \ }]
+          \ })]
   end
 
   it 'keeps front matter delimiters outside the document start as Setext headings'
@@ -417,12 +420,6 @@ describe 'sembr#parser#markdown#Parse'
   it 'returns an empty document for no lines'
     let tree = sembr#parser#markdown#Parse(SemBrParserMarkdownTestDocument([]))
 
-    Expect tree ==# {
-          \ 'kind': 'document',
-          \ 'start': [0, 0],
-          \ 'end': [0, 0],
-          \ 'children': [],
-          \ 'safe': 0,
-          \ }
+    Expect tree ==# sembr#models#Node({'kind': 'document'})
   end
 end

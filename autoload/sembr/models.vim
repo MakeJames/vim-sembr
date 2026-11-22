@@ -1,0 +1,218 @@
+" Higher level data structures for SemBr
+
+
+function! s:assert_flag(value) abort
+  if type(a:value) != type(0)
+    throw 'sembr: invalid flag value: '
+        \ . string(a:value) . ', must be 0 or 1.'
+  endif
+
+  if a:value != 0 && a:value != 1
+    throw 'sembr: invalid flag value: '
+        \ . string(a:value) . ', must be 0 or 1.'
+  endif
+endfunction
+
+
+function! s:assert_list(value, list_type) abort
+  if type(a:value) != type([])
+    throw 'sembr: invalid list value: ' . string(a:value) . ', must be a list.'
+  endif
+
+  for l:item in a:value
+    if type(l:item) != type(a:list_type)
+      throw 'sembr: invalid list value: '
+        \ . string(l:item) . ', must be a ' . string(a:list_type) . '.'
+    endif
+  endfor
+
+endfunction
+
+
+function! s:assert_string(value) abort
+  if type(a:value) != type('')
+    throw 'sembr: invalid string value: '
+        \ . string(a:value) . ', must be a string.'
+  endif
+endfunction
+
+function! s:assert_non_negative_integer(value, field_name) abort
+  if type(a:value) != type(0)
+    throw 'sembr: invalid integer value: '
+        \ . string(a:value) . ', '
+        \ . string(a:field_name) .
+        \ ' must be an integer.'
+  endif
+
+  if a:value < 0
+    throw 'sembr: invalid integer value: '
+        \ . string(a:value) . ', '
+        \ . string(a:field_name) .
+        \ ' must be a non-negative integer.'
+  endif
+endfunction
+
+
+function! s:assert_line_and_column(value, field_name) abort
+  if type(a:value) != type([])
+    throw 'sembr: invalid line and column value: '
+        \ . string(a:value) . ', '
+        \ . string(a:field_name) .
+        \ ' must be a list.'
+  endif
+
+  if len(a:value) != 2
+    throw 'sembr: invalid line and column value: '
+        \ . string(a:value) . ', '
+        \ . string(a:field_name) .
+        \ ' must be a list of two integers.'
+  endif
+
+  for l:item in a:value
+    call s:assert_non_negative_integer(l:item, a:field_name)
+  endfor
+endfunction
+
+function! s:assert_start_and_end(start_value, end_value) abort
+    call s:assert_line_and_column(a:start_value, 'start')
+    call s:assert_line_and_column(a:end_value, 'end')
+
+    if len(a:start_value) != 2 || len(a:end_value) != 2
+        throw 'sembr: invalid start or end value: '
+            \ . string(a:start_value) . ', ' . string(a:end_value)
+            \ . ', must be lists of two integers.'
+    endif
+
+    if a:start_value[0] > a:end_value[0]
+        throw 'sembr: invalid start and end values: '
+            \ . string(a:start_value) . ', ' . string(a:end_value)
+            \ . ', start line must be less than or equal to end line.'
+    endif
+    if a:start_value[0] == a:end_value[0] && a:start_value[1] > a:end_value[1]
+        throw 'sembr: invalid start and end values: '
+            \ . string(a:start_value) . ', ' . string(a:end_value)
+            \ . ', start column must be less than or equal to end column.'
+    endif
+endfunction
+
+
+function! s:validate_node_children(value, kind) abort
+    let l:valid_children = []
+
+    if type(a:value) != type([])
+        throw 'sembr: invalid children value: '
+            \ . string(a:value) . ', '
+            \ . string(a:kind) .
+            \ ' must be a list.'
+    endif
+
+    for l:item in a:value
+        if type(l:item) != type({})
+            throw 'sembr: invalid child node value: '
+                \ . string(l:item) . ', '
+                \ . string(a:kind) .
+                \ ' must be a dictionary.'
+        endif
+        let l:valid_child = sembr#models#Node(l:item)
+        call add(l:valid_children, l:valid_child)
+    endfor
+
+    return l:valid_children
+
+endfunction
+
+
+function! sembr#models#Match(opt) abort
+  " A Match object is an internal object for a matched pattern.
+  "
+  " Parameters:
+  "  opt: dictionary of options to set on the match
+  "
+  " Returns:
+  " A dictionary representing the match with the following keys:
+  "
+  "   matched: int - 0 or 1 indicating if the pattern was matched (default: 0)
+  "   kind: string representing the type of match (default: '')
+  "   lines: list of strings in the match (default: [])
+  "   complete: int - 0 or 1 indicating if the match is complete (default: 0)
+  "   safe: int - 0 or 1 indicating if the match is safe (default: 0)
+
+  let l:defaults = {
+        \ 'matched': 0,
+        \ 'kind': '',
+        \ 'lines': [],
+        \ 'complete': 0,
+        \ 'safe': 0,
+        \ }
+
+  let l:match = {
+        \ 'matched': get(a:opt, 'matched', l:defaults.matched),
+        \ 'kind': get(a:opt, 'kind', l:defaults.kind),
+        \ 'lines': get(a:opt, 'lines', l:defaults.lines),
+        \ 'complete': get(a:opt, 'complete', l:defaults.complete),
+        \ 'safe': get(a:opt, 'safe', l:defaults.safe),
+        \ }
+
+  call s:assert_flag(l:match.matched)
+  call s:assert_flag(l:match.safe)
+  call s:assert_flag(l:match.complete)
+
+  call s:assert_string(l:match.kind)
+  call s:assert_list(l:match.lines, 'string')
+
+  return l:match
+
+endfunction
+
+
+function! sembr#models#Node(opt) abort
+  " A node is a generic element of the document.
+  "
+  " Parameters:
+  "   opt: dictionary of options to set on the node
+  "
+  " Returns:
+  "   A dictionary representing the node with the following keys:
+  "     kind: string representing the type of node (default: '')
+  "     start: list of ints - [line, column] (default: [0, 0])
+  "     end: list of ints - [line, column] (default: [0, 0])
+  "     children: list of child nodes (default: [sembr#models#Node])
+  "     lines: list of strings in the node (default: [])
+  "     safe: int - 0 or 1 indicating if the node is safe (default: 0)
+
+
+  let l:defaults = {
+        \ 'kind': '',
+        \ 'start': [0, 0],
+        \ 'end': [0, 0],
+        \ 'children': [],
+        \ 'lines': [],
+        \ 'safe': 0,
+        \ }
+
+  let l:node = {
+        \ 'kind': get(a:opt, 'kind', l:defaults.kind),
+        \ 'start': get(a:opt, 'start', l:defaults.start),
+        \ 'end': get(a:opt, 'end', l:defaults.end),
+        \ 'children': get(a:opt, 'children', l:defaults.children),
+        \ 'lines': get(a:opt, 'lines', l:defaults.lines),
+        \ 'safe': get(a:opt, 'safe', l:defaults.safe),
+        \ }
+
+  call s:assert_string(l:node.kind)
+
+  call s:assert_list(l:node.lines, 'string')
+
+  call s:assert_flag(l:node.safe)
+
+  let l:node.children = s:validate_node_children(
+              \ l:node.children,
+              \ 'sembr#models#Node')
+
+  call s:assert_start_and_end(l:node.start, l:node.end)
+
+  call s:assert_list(l:node.children, {})
+
+  return l:node
+
+endfunction

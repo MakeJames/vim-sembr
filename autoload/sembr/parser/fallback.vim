@@ -3,13 +3,11 @@
 " no-op rather than erroring or mangling syntax it doesn't understand.
 
 function! sembr#parser#fallback#Parse(document) abort
-  return {
+  return sembr#models#Node({
         \ 'kind': 'document',
-        \ 'start': [0, 0],
         \ 'end': [max([len(a:document.lines) - 1, 0]), 0],
         \ 'lines': a:document.lines,
-        \ 'safe': 0,
-        \ }
+        \ })
 endfunction
 
 function! sembr#parser#fallback#Rules() abort
