@@ -196,7 +196,7 @@ function! sembr#models#Node(opt) abort
 
   call s:assert_flag(l:node.safe)
 
-  call s:assert_valid_node_children(l:node.children, "sembr#models#Node")
+  call s:assert_valid_node_children(l:node.children, 'sembr#models#Node')
 
   call s:assert_start_and_end(l:node.start, l:node.end)
 
