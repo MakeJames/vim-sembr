@@ -1,11 +1,11 @@
 " The engine plans the SemBr rule set against the document tree.
 
-function! s:split_sentences(lines) abort
-  " Split a list of lines into sentences.
-  let l:text = join(a:lines, ' ')
+function! s:break_after_sentence(lines) abort
+  return split(a:lines, '\([.!?]\)\@<=\s\+')
+endfunction
 
-  return split(l:text, '\([.!?]\)\@<=\s\+')
-
+function! s:join_lines(lines) abort
+  return join(a:lines, ' ')
 endfunction
 
 function! s:visit_impl(node, in_selection) dict abort
@@ -26,7 +26,8 @@ function! s:visit_impl(node, in_selection) dict abort
     let l:lines = a:node.lines[
                 \ l:first_line - a:node.start[0] :
                 \ l:last_line - a:node.start[0]]
-    let l:replacement = s:split_sentences(l:lines)
+    let l:text = s:join_lines(l:lines)
+    let l:replacement = s:break_after_sentence(l:text)
 
     return [{
           \ 'start': [l:first_line, 0],
