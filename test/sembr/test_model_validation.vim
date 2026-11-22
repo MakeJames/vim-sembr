@@ -125,6 +125,59 @@ describe 'Node Model Validation: lines'
   end
 end
 
+describe 'Node Model Validation: start and end'
+
+  it 'should thow an error when start is a number'
+    let case = {'start': 1}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid line and column value: 1, ''start'' must be a list.'
+  end
+
+  it 'should thow an error when end is a number'
+    let case = {'end': 1}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid line and column value: 1, ''end'' must be a list.'
+  end
+
+
+  it 'should thow an error when start is a list of length 1'
+    let case = {'start': [1]}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid line and column value: \[1\], ''start'' must be a list of two integers.'
+  end
+
+  it 'should thow an error when end is a list of length 1'
+    let case = {'end': [1]}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid line and column value: \[1\], ''end'' must be a list of two integers.'
+  end
+
+  it 'should thow an error when start is a list of length 3'
+    let case = {'start': [1, 2, 3]}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid line and column value: \[1, 2, 3\], ''start'' must be a list of two integers.'
+  end
+
+  it 'should throw an error when the start list contains a non-number value'
+    let case = {'start': [1, 'string']}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid integer value: ''string'', ''start'' must be an integer.'
+  end
+
+  it 'should throw an error when the end list contains a negative number value'
+    let case = {'end': [1, -1]}
+
+    Expect expr { sembr#models#Node(case) }
+        \ to_throw 'sembr: invalid integer value: -1, ''end'' must be a non-negative integer.'
+  end
+end
+
 describe 'Node Model Validation: safe flag'
 
   it 'should thow an error when safe is 2'

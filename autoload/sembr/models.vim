@@ -32,6 +32,43 @@ function! s:assert_string(value) abort
   endif
 endfunction
 
+function! s:assert_non_negative_integer(value, field_name) abort
+  if type(a:value) != type(0)
+    throw 'sembr: invalid integer value: '
+        \ . string(a:value) . ', '
+        \ . string(a:field_name) .
+        \ ' must be an integer.'
+  endif
+
+  if a:value < 0
+    throw 'sembr: invalid integer value: '
+        \ . string(a:value) . ', '
+        \ . string(a:field_name) .
+        \ ' must be a non-negative integer.'
+  endif
+endfunction
+
+
+function! s:assert_line_and_column(value, field_name) abort
+  if type(a:value) != type([])
+    throw 'sembr: invalid line and column value: '
+        \ . string(a:value) . ', '
+        \ . string(a:field_name) .
+        \ ' must be a list.'
+  endif
+
+  if len(a:value) != 2
+    throw 'sembr: invalid line and column value: '
+        \ . string(a:value) . ', '
+        \ . string(a:field_name) .
+        \ ' must be a list of two integers.'
+  endif
+
+  for l:item in a:value
+    call s:assert_non_negative_integer(l:item, a:field_name)
+  endfor
+endfunction
+
 
 function! sembr#models#Match(opt) abort
   " A Match object is an internal object for a matched pattern.
@@ -119,8 +156,8 @@ function! sembr#models#Node(opt) abort
   " Validate the 'safe' flag
   call s:assert_flag(l:node.safe)
 
-  call s:assert_list(l:node.start, 0)
-  call s:assert_list(l:node.end, 0)
+  call s:assert_line_and_column(l:node.start, 'start')
+  call s:assert_line_and_column(l:node.end, 'end')
 
   if len(l:node.start) != 2 || len(l:node.end) != 2
     throw 'sembr: invalid start or end value: '
